@@ -2,47 +2,49 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+	use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
+	public const ROLE_ADMIN       = 'administrator';
+	public const ROLE_CUSTOMER    = 'customer';
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+	protected $fillable = [
+		'first_name',
+		'last_name',
+		'email',
+		'password',
+		'role',
+	];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+	protected $hidden = [
+		'password',
+		'remember_token',
+	];
+
+	protected $casts = [
+		// Automatically hash when setting $user->password
+		'password' => 'hashed',
+	];
+
+	// Convenience: "Admin" check
+	public function isAdmin(): bool
+	{
+		return $this->role === self::ROLE_ADMIN;
+	}
+
+	// Convenience: full name
+	public function getFullNameAttribute(): string
+	{
+		return trim($this->first_name . ' ' . $this->last_name);
+	}
+
+	protected $appends = [
+		'full_name',
+	];
 }
