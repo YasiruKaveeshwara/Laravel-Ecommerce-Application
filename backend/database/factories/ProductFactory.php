@@ -11,8 +11,13 @@ class ProductFactory extends Factory
 
   public function definition(): array
   {
+    $brands = ['Pixel', 'Galaxy', 'iPhone', 'Xperia', 'OnePlus', 'Nothing', 'Moto'];
+    $categories = ['flagship', 'foldables', 'midrange', 'budget'];
+
     return [
       'name'        => ucfirst($this->faker->unique()->words(3, true)),
+      'brand'       => $this->faker->randomElement($brands),
+      'category'    => $this->faker->randomElement($categories),
       'description' => $this->faker->optional()->paragraph(),
       'price'       => $this->faker->randomFloat(2, 5, 499),
       // Temporary placeholders; DatabaseSeeder will replace with real files

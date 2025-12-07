@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
@@ -11,12 +12,7 @@ class UserService
   /** Admin list */
   public function list(?string $q = null, int $perPage = 20)
   {
-    return User::query()
-      ->when($q, function ($qq) use ($q) {
-        $qq->where('email', 'ILIKE', "%{$q}%")
-          ->orWhere('first_name', 'ILIKE', "%{$q}%")
-          ->orWhere('last_name', 'ILIKE', "%{$q}%");
-      })
+    return $this->searchableQuery(User::query(), $q)
       ->latest('id')
       ->paginate($perPage);
   }
@@ -48,5 +44,21 @@ class UserService
   public function delete(User $user): void
   {
     DB::transaction(fn() => $user->delete());
+  }
+
+  private function searchableQuery(Builder $query, ?string $term): Builder
+  {
+    if (! $term) {
+      return $query;
+    }
+
+    $needle = '%' . mb_strtolower($term) . '%';
+
+    return $query->where(function (Builder $inner) use ($needle) {
+      $inner
+        ->whereRaw('LOWER(email) LIKE ?', [$needle])
+        ->orWhereRaw('LOWER(first_name) LIKE ?', [$needle])
+        ->orWhereRaw('LOWER(last_name) LIKE ?', [$needle]);
+    });
   }
 }

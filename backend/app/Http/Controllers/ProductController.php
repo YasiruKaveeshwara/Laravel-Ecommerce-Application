@@ -60,6 +60,8 @@ class ProductController extends Controller
   {
     $data = $request->validate([
       'name'        => ['required', 'string', 'max:255'],
+      'brand'       => ['required', 'string', 'max:255'],
+      'category'    => ['required', 'string', 'in:flagship,foldables,midrange,budget'],
       'description' => ['nullable', 'string'],
       'price'       => ['required', 'numeric', 'min:0'],
       'image'       => ['required', 'image', 'max:5120'], // 5MB
@@ -78,6 +80,8 @@ class ProductController extends Controller
   {
     $data = $request->validate([
       'name'        => ['sometimes', 'string', 'max:255'],
+      'brand'       => ['sometimes', 'string', 'max:255'],
+      'category'    => ['sometimes', 'string', 'in:flagship,foldables,midrange,budget'],
       'description' => ['sometimes', 'nullable', 'string'],
       'price'       => ['sometimes', 'numeric', 'min:0'],
       'image'       => ['sometimes', 'image', 'max:5120'],

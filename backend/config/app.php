@@ -64,7 +64,7 @@ return [
     |
     */
 
-    'backoffice_dashboard_url' => env('BACKOFFICE_DASHBOARD_URL', '/backoffice'),
+    'backoffice_dashboard_url' => env('BACKOFFICE_DASHBOARD_URL', '/admin/products'),
 
     'storefront_home_url' => env('STOREFRONT_HOME_URL', '/'),
 

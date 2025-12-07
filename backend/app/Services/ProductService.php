@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Product;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
@@ -13,8 +14,7 @@ class ProductService
   /** Public/customer list with optional name search */
   public function listPublic(?string $q = null, int $perPage = 12)
   {
-    return Product::query()
-      ->when($q, fn($qq) => $qq->where('name', 'ILIKE', "%{$q}%")) // Postgres-friendly search
+    return $this->searchableQuery(Product::query(), $q)
       ->latest('id')
       ->paginate($perPage);
   }
@@ -28,8 +28,7 @@ class ProductService
   /** Admin list */
   public function listAdmin(?string $q = null, int $perPage = 20)
   {
-    return Product::query()
-      ->when($q, fn($qq) => $qq->where('name', 'ILIKE', "%{$q}%"))
+    return $this->searchableQuery(Product::query(), $q)
       ->latest('id')
       ->paginate($perPage);
   }
@@ -70,6 +69,23 @@ class ProductService
       $this->images->delete($product->image_path);
       $this->images->delete($product->original_image_path);
       $product->delete();
+    });
+  }
+
+  /**
+   * Apply a case-insensitive LIKE filter that works across SQLite/MySQL/Postgres.
+   */
+  private function searchableQuery(Builder $query, ?string $term): Builder
+  {
+    if (! $term) {
+      return $query;
+    }
+
+    $needle = '%' . mb_strtolower($term) . '%';
+
+    return $query->where(function ($inner) use ($needle) {
+      $inner->whereRaw('LOWER(name) LIKE ?', [$needle])
+        ->orWhereRaw('LOWER(brand) LIKE ?', [$needle]);
     });
   }
 }
