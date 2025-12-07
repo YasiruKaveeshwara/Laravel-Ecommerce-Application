@@ -1,0 +1,564 @@
+{
+    "info": {
+        "_postman_id": "7b829570-3f33-465b-9c21-1f8b3f0f6f2a",
+        "name": "Laravel Ecommerce API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": "Collection covering public catalog, authenticated user helpers, and administrator backoffice endpoints for the Laravel Ecommerce backend."
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost",
+            "type": "string",
+            "description": "Root domain where the Laravel backend is served (omit trailing slash)."
+        },
+        {
+            "key": "auth_token",
+            "value": "",
+            "type": "string",
+            "description": "Sanctum API token obtained from the /api/login response."
+        },
+        {
+            "key": "sample_user_id",
+            "value": "1",
+            "type": "string",
+            "description": "Convenience variable for targeting an existing user record."
+        },
+        {
+            "key": "sample_product_id",
+            "value": "1",
+            "type": "string",
+            "description": "Convenience variable for targeting an existing product record."
+        }
+    ],
+    "item": [
+        {
+            "name": "Public",
+            "description": "Endpoints that do not require authentication.",
+            "item": [
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "login"]
+                        },
+                        "description": "Single login endpoint for both administrators and customers. Returns an API token, user payload, and suggested redirect URL."
+                    }
+                },
+                {
+                    "name": "List Products (Public)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/products?q=&per_page=12",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "products"],
+                            "query": [
+                                {
+                                    "key": "q",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "12"
+                                }
+                            ]
+                        },
+                        "description": "Customer-facing paginated product list. Accepts optional search term `q` and page size `per_page` (max 100)."
+                    }
+                },
+                {
+                    "name": "Show Product (Public)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/products/{{sample_product_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "products", "{{sample_product_id}}"]
+                        },
+                        "description": "Fetch a single product, returning the optimized + watermarked image URL plus the rest of the catalog data."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Authenticated",
+            "description": "Endpoints requiring a Sanctum bearer token (set the {{auth_token}} variable).",
+            "item": [
+                {
+                    "name": "Who Am I",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/me",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "me"]
+                        },
+                        "description": "Returns the currently authenticated user (helpful for clients to refresh session state)."
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/logout",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "logout"]
+                        },
+                        "description": "Revokes the currently active access token."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Admin — Users",
+            "description": "Backoffice user management (requires administrator role).",
+            "item": [
+                {
+                    "name": "List Users",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/users?q=&per_page=20",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "users"],
+                            "query": [
+                                {
+                                    "key": "q",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                }
+                            ]
+                        },
+                        "description": "Paginated user list with optional search across email, first, and last names."
+                    }
+                },
+                {
+                    "name": "Create User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"first_name\": \"Jane\",\n  \"last_name\": \"Doe\",\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"customer\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/users",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "users"]
+                        },
+                        "description": "Create a new user. Passwords are securely hashed by the model cast."
+                    }
+                },
+                {
+                    "name": "Show User",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/users/{{sample_user_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "users", "{{sample_user_id}}"]
+                        },
+                        "description": "Retrieve a specific user's full details."
+                    }
+                },
+                {
+                    "name": "Update User",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"first_name\": \"Updated\",\n  \"last_name\": \"User\",\n  \"email\": \"updated@example.com\",\n  \"role\": \"administrator\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/users/{{sample_user_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "users", "{{sample_user_id}}"]
+                        },
+                        "description": "Update any subset of user fields. Omit properties to leave them unchanged."
+                    }
+                },
+                {
+                    "name": "Delete User",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/users/{{sample_user_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "users", "{{sample_user_id}}"]
+                        },
+                        "description": "Soft delete is not enabled; this permanently removes the user record."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Admin — Products",
+            "description": "Backoffice product management including image processing requirements.",
+            "item": [
+                {
+                    "name": "List Products (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/products?q=&per_page=20",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "products"],
+                            "query": [
+                                {
+                                    "key": "q",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                }
+                            ]
+                        },
+                        "description": "Administrator view of the catalog, returning paginated results for the backoffice grid."
+                    }
+                },
+                {
+                    "name": "Show Product (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/products/{{sample_product_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": [
+                                "api",
+                                "admin",
+                                "products",
+                                "{{sample_product_id}}"
+                            ]
+                        },
+                        "description": "Fetch a single product record for editing within the backoffice UI."
+                    }
+                },
+                {
+                    "name": "Create Product",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "value": "New Product",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "Short description",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "price",
+                                    "value": "99.99",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "src": "C:/path/to/image.jpg"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/products",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "products"]
+                        },
+                        "description": "Uploads a product image, which is optimized + watermarked automatically."
+                    }
+                },
+                {
+                    "name": "Update Product",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "value": "Updated Product Name",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "price",
+                                    "value": "120.00",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "src": ""
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/products/{{sample_product_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": [
+                                "api",
+                                "admin",
+                                "products",
+                                "{{sample_product_id}}"
+                            ]
+                        },
+                        "description": "Update copy, pricing, or replace the image. Leave a field blank to avoid changing it."
+                    }
+                },
+                {
+                    "name": "Delete Product",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{auth_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/products/{{sample_product_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": [
+                                "api",
+                                "admin",
+                                "products",
+                                "{{sample_product_id}}"
+                            ]
+                        },
+                        "description": "Deletes the product record and removes related optimized/original images."
+                    }
+                }
+            ]
+        }
+    ]
+}

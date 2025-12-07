@@ -56,6 +56,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Front-end Redirect Targets
+    |--------------------------------------------------------------------------
+    |
+    | These URLs inform the client application where to send users after a
+    | successful authentication based on their role (administrator/customer).
+    |
+    */
+
+    'backoffice_dashboard_url' => env('BACKOFFICE_DASHBOARD_URL', '/backoffice'),
+
+    'storefront_home_url' => env('STOREFRONT_HOME_URL', '/'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
