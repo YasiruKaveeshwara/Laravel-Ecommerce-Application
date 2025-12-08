@@ -10,6 +10,35 @@ use App\Models\User;
 class AuthController extends Controller
 {
   /**
+   * POST /api/register
+   */
+  public function register(Request $request)
+  {
+    $data = $request->validate([
+      'first_name' => ['required', 'string', 'max:100'],
+      'last_name'  => ['required', 'string', 'max:100'],
+      'email'      => ['required', 'email', 'max:255', 'unique:users,email'],
+      'password'   => ['required', 'string', 'min:8', 'confirmed'],
+    ]);
+
+    $user = User::create([
+      'first_name' => $data['first_name'],
+      'last_name'  => $data['last_name'],
+      'email'      => $data['email'],
+      'password'   => $data['password'],
+      'role'       => User::ROLE_CUSTOMER,
+    ]);
+
+    $token = $user->createToken('api')->plainTextToken;
+
+    return response()->json([
+      'token' => $token,
+      'user'  => $user,
+      'redirect_to' => $this->redirectPathFor($user),
+    ], 201);
+  }
+
+  /**
    * POST /api/login
    */
   public function login(Request $request)

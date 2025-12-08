@@ -8,13 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/store/auth";
 
-// simple, editable categories
-const CATEGORIES = [
+const STORE_LINKS = [
   { href: "/products", label: "Phones" },
   { href: "/bundles", label: "Bundles" },
   { href: "/trade-in", label: "Trade-in" },
   { href: "/support", label: "Support" },
+];
+
+const ADMIN_LINKS = [
+  { href: "/admin/products", label: "Inventory" },
+  { href: "/admin/products/new", label: "Add Product" },
+  { href: "/admin/users", label: "Customers" },
 ];
 
 export function Navbar() {
@@ -23,6 +29,11 @@ export function Navbar() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const user = useAuth((s) => s.user);
+  const hydrate = useAuth((s) => s.hydrate);
+  const logout = useAuth((s) => s.logout);
+  const isAdmin = user?.role === "administrator";
+  const navLinks = isAdmin ? ADMIN_LINKS : STORE_LINKS;
 
   // subtle style on scroll (mobile & desktop)
   useEffect(() => {
@@ -31,6 +42,10 @@ export function Navbar() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +94,7 @@ export function Navbar() {
 
                 {/* Mobile nav links */}
                 <nav className='p-2'>
-                  {CATEGORIES.map((c) => (
+                  {navLinks.map((c) => (
                     <Link
                       key={c.href}
                       href={c.href}
@@ -94,6 +109,39 @@ export function Navbar() {
                     </Link>
                   ))}
                 </nav>
+
+                <div className='border-t border-border p-4 space-y-3 text-sm'>
+                  {user ? (
+                    <div className='flex flex-col gap-3'>
+                      <p className='text-muted'>Signed in as {user.first_name}</p>
+                      {isAdmin ? (
+                        <p className='rounded-xl border border-dashed border-sky-200 bg-sky-50 px-3 py-2 text-sky-700'>
+                          Admin access active
+                        </p>
+                      ) : (
+                        <p className='rounded-xl border border-dashed border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700'>
+                          Customer perks unlocked
+                        </p>
+                      )}
+                      <Button
+                        variant='outline'
+                        onClick={() => {
+                          logout();
+                          setOpen(false);
+                          router.push("/");
+                        }}>
+                        Logout
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className='flex flex-col gap-2'>
+                      <Button onClick={() => router.push("/login")}>Sign in</Button>
+                      <Button variant='outline' onClick={() => router.push("/signup")}>
+                        Create account
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </SheetContent>
             </Sheet>
           </div>
@@ -105,7 +153,7 @@ export function Navbar() {
 
           {/* Desktop nav */}
           <nav className='hidden md:flex items-center gap-2 ml-4'>
-            {CATEGORIES.map((c) => (
+            {navLinks.map((c) => (
               <Link
                 key={c.href}
                 href={c.href}
@@ -143,24 +191,53 @@ export function Navbar() {
 
           {/* Actions */}
           <div className='flex items-center gap-2'>
-            <Link href='/login' aria-label='Sign in'>
-              <Button variant='outline' className='hidden md:inline-flex'>
-                <LogIn className='h-4 w-4 mr-2' />
-                Sign in
-              </Button>
-            </Link>
+            {user ? (
+              <>
+                {isAdmin ? (
+                  <Link href='/admin/products' className='hidden md:inline-flex text-sm text-muted hover:text-sky-600'>
+                    Admin Console
+                  </Link>
+                ) : (
+                  <Link href='/orders' className='hidden md:inline-flex text-sm text-muted hover:text-sky-600'>
+                    My Orders
+                  </Link>
+                )}
+                <span className='hidden md:inline text-sm text-muted'>Hi, {user.first_name}</span>
+                <Button
+                  variant='outline'
+                  onClick={() => {
+                    logout();
+                    router.push("/");
+                  }}>
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href='/login' aria-label='Sign in'>
+                  <Button variant='outline' className='hidden md:inline-flex'>
+                    <LogIn className='h-4 w-4 mr-2' />
+                    Sign in
+                  </Button>
+                </Link>
+                <Link href='/signup' className='hidden md:inline-flex'>
+                  <Button>Create account</Button>
+                </Link>
+              </>
+            )}
 
-            <Link href='/cart' aria-label='Cart'>
-              <Button variant='ghost' className='relative'>
-                <ShoppingCart className='h-5 w-5' />
-                {/* cart badge placeholder */}
-                <span
-                  aria-hidden
-                  className='absolute -right-1 -top-1 text-[10px] min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center'>
-                  0
-                </span>
-              </Button>
-            </Link>
+            {!isAdmin && (
+              <Link href='/cart' aria-label='Cart'>
+                <Button variant='ghost' className='relative'>
+                  <ShoppingCart className='h-5 w-5' />
+                  <span
+                    aria-hidden
+                    className='absolute -right-1 -top-1 text-[10px] min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center'>
+                    0
+                  </span>
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 

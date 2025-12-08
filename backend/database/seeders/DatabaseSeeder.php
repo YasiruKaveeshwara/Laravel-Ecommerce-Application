@@ -19,14 +19,16 @@ class DatabaseSeeder extends Seeder
 		// 1) Ensure a placeholder exists on public disk (used by ProductFactory defaults)
 		$this->ensurePlaceholder();
 
-		// 2) Admin (deterministic) + some customers
+		// 2) Master admin (deterministic credentials for operators)
+		$masterEmail = 'master.admin@pulsemobile.com';
+		$masterPassword = 'PulseAdmin#2025';
 		User::updateOrCreate(
-			['email' => 'admin@example.com'],
+			['email' => $masterEmail],
 			[
-				'first_name' => 'Admin',
-				'last_name'  => 'User',
+				'first_name' => 'Pulse',
+				'last_name'  => 'Admin',
 				'role'       => User::ROLE_ADMIN,
-				'password'   => Hash::make('password'),
+				'password'   => $masterPassword,
 			]
 		);
 

@@ -15,6 +15,7 @@ use App\Http\Controllers\ProductController;
 */
 
 // -------- Public (no auth) --------
+Route::post('/register', [AuthController::class, 'register'])->name('auth.register');
 Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
 
 Route::get('/products',        [ProductController::class, 'index'])->name('products.index');

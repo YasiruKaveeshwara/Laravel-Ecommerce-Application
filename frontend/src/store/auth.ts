@@ -13,16 +13,33 @@ type AuthState = {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<{ token: string; user: User; redirect_to?: string }>;
+  signup: (payload: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+    password_confirmation: string;
+  }) => Promise<{ token: string; user: User; redirect_to?: string }>;
   logout: () => void;
   fetchMe: () => Promise<void>;
+  hydrate: () => Promise<void>;
+  initialized: boolean;
 };
 
 export const useAuth = create<AuthState>((set, get) => ({
   user: null,
   token: null,
+  initialized: false,
 
   async login(email, password) {
     const data = await api("/login", { method: "POST", body: { email, password } });
+    localStorage.setItem("token", data.token);
+    set({ token: data.token, user: data.user });
+    return data;
+  },
+
+  async signup(payload) {
+    const data = await api("/register", { method: "POST", body: payload });
     localStorage.setItem("token", data.token);
     set({ token: data.token, user: data.user });
     return data;
@@ -45,5 +62,13 @@ export const useAuth = create<AuthState>((set, get) => ({
       localStorage.removeItem("token");
       set({ user: null, token: null });
     }
+  },
+
+  async hydrate() {
+    if (get().initialized) {
+      return;
+    }
+    set({ initialized: true });
+    await get().fetchMe();
   },
 }));
