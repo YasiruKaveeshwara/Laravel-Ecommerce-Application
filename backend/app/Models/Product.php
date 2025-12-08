@@ -24,12 +24,24 @@ class Product extends Model
 		'price' => 'decimal:2',
 	];
 
-	// Public URL for the optimized image (requires `php artisan storage:link`)
+	// Public URL for the optimized image (gracefully builds absolute URLs even without storage:link)
 	public function getImageUrlAttribute(): ?string
 	{
-		return $this->image_path
-			? Storage::url($this->image_path)
-			: null;
+		if (! $this->image_path) {
+			return null;
+		}
+
+		$rawUrl = Storage::disk('public')->url($this->image_path);
+		$path = parse_url($rawUrl, PHP_URL_PATH) ?: $rawUrl;
+
+		$host = request()?->getSchemeAndHttpHost()
+			?: (config('app.url') ?: null);
+
+		if ($host) {
+			return rtrim($host, '/') . '/' . ltrim($path, '/');
+		}
+
+		return url($path);
 	}
 
 	protected $appends = [

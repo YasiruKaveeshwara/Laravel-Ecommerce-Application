@@ -25,6 +25,12 @@ class ProductService
     return Product::findOrFail($id);
   }
 
+  /** Admin show */
+  public function showAdmin(int $id): Product
+  {
+    return Product::findOrFail($id);
+  }
+
   /** Admin list */
   public function listAdmin(?string $q = null, int $perPage = 20)
   {

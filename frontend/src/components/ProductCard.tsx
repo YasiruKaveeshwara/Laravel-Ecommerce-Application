@@ -1,25 +1,32 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-
-export type Product = {
-  id: number;
-  name: string;
-  brand?: string | null;
-  description?: string | null;
-  category?: string | null;
-  price: string; // decimal often arrives as string
-  image_url?: string | null;
-};
+import type { Product } from "@/types/product";
+import { rememberProductSelection, type ProductSelectionScope } from "@/lib/productSelection";
+import { useCart } from "@/store/cart";
 
 type ProductCardProps = {
   p: Product;
   size?: "compact" | "default";
+  detailScope?: ProductSelectionScope;
 };
 
-export function ProductCard({ p, size = "default" }: ProductCardProps) {
+export function ProductCard({ p, size = "default", detailScope = "storefront" }: ProductCardProps) {
   const meta = deriveProductMeta(p);
   const isCompact = size === "compact";
+  const router = useRouter();
+  const addItem = useCart((state) => state.addItem);
+  const showCartCta = detailScope !== "admin";
+
+  const onViewDetails = () => {
+    rememberProductSelection(p, detailScope);
+    router.push(detailScope === "admin" ? "/admin/products/view" : "/products/view");
+  };
+
+  const onAddToCart = () => addItem(p, 1);
 
   return (
     <Card
@@ -53,7 +60,20 @@ export function ProductCard({ p, size = "default" }: ProductCardProps) {
           </div>
         </div>
 
-        <Button className={cn("mt-auto w-full", isCompact ? "h-9 text-sm" : undefined)}>Add to Cart</Button>
+        <div className={cn("mt-auto grid gap-2", showCartCta ? "grid-cols-2" : "grid-cols-1")}>
+          <Button
+            type='button'
+            variant='outline'
+            className={cn("w-full", isCompact ? "h-9 text-sm" : undefined)}
+            onClick={onViewDetails}>
+            View details
+          </Button>
+          {showCartCta && (
+            <Button className={cn("w-full", isCompact ? "h-9 text-sm" : undefined)} onClick={onAddToCart}>
+              Add to Cart
+            </Button>
+          )}
+        </div>
       </div>
     </Card>
   );

@@ -1,6 +1,13 @@
-import { ProductCard, type Product } from "@/components/ProductCard";
+import { ProductCard } from "@/components/ProductCard";
+import type { Product } from "@/types/product";
+import type { ProductSelectionScope } from "@/lib/productSelection";
 
-export function ProductGallery({ products }: { products: Product[] }) {
+type GalleryProps = {
+  products: Product[];
+  scope?: ProductSelectionScope;
+};
+
+export function ProductGallery({ products, scope = "storefront" }: GalleryProps) {
   if (!products?.length) {
     return (
       <div className='rounded-2xl border border-dashed border-border p-10 text-center text-muted'>
@@ -12,7 +19,7 @@ export function ProductGallery({ products }: { products: Product[] }) {
   return (
     <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'>
       {products.map((product) => (
-        <ProductCard key={product.id} p={product} size='compact' />
+        <ProductCard key={product.id} p={product} size='compact' detailScope={scope} />
       ))}
     </div>
   );

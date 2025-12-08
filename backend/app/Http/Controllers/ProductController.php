@@ -32,6 +32,19 @@ class ProductController extends Controller
   }
 
   /**
+   * POST /api/products/detail  (public)
+   * Body: product_id
+   */
+  public function detail(Request $request)
+  {
+    $data = $request->validate([
+      'product_id' => ['required', 'integer', 'exists:products,id'],
+    ]);
+
+    return $this->products->showPublic((int) $data['product_id']);
+  }
+
+  /**
    * GET /api/admin/products  (auth:sanctum + role:administrator)
    * Query params: q, per_page
    */
@@ -50,6 +63,19 @@ class ProductController extends Controller
   public function adminShow(Product $product)
   {
     return $product;
+  }
+
+  /**
+   * POST /api/admin/products/detail  (auth:sanctum + role:administrator)
+   * Body: product_id
+   */
+  public function adminDetail(Request $request)
+  {
+    $data = $request->validate([
+      'product_id' => ['required', 'integer', 'exists:products,id'],
+    ]);
+
+    return $this->products->showAdmin((int) $data['product_id']);
   }
 
   /**

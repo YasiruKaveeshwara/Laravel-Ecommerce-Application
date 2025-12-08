@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use App\Models\User;
 
@@ -87,6 +88,62 @@ class AuthController extends Controller
     // Revoke current token only
     $request->user()->currentAccessToken()?->delete();
     return response()->json(['message' => 'Logged out']);
+  }
+
+  /**
+   * PUT /api/me  (auth:sanctum)
+   */
+  public function updateProfile(Request $request)
+  {
+    $user = $request->user();
+
+    $data = $request->validate([
+      'first_name' => ['sometimes', 'string', 'max:100'],
+      'last_name'  => ['sometimes', 'string', 'max:100'],
+      'email'      => ['sometimes', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+      'password'   => ['sometimes', 'nullable', 'string', 'min:8', 'confirmed'],
+    ]);
+
+    $update = [];
+    foreach (['first_name', 'last_name', 'email'] as $field) {
+      if (array_key_exists($field, $data)) {
+        $update[$field] = $data[$field];
+      }
+    }
+
+    if (array_key_exists('password', $data) && $data['password']) {
+      $update['password'] = $data['password'];
+    }
+
+    if (! empty($update)) {
+      $user->fill($update);
+      $user->save();
+    }
+
+    return $user->fresh();
+  }
+
+  /**
+   * DELETE /api/me  (auth:sanctum)
+   */
+  public function destroyProfile(Request $request)
+  {
+    $user = $request->user();
+
+    $data = $request->validate([
+      'password' => ['required', 'string'],
+    ]);
+
+    if (! Hash::check($data['password'], $user->password)) {
+      throw ValidationException::withMessages([
+        'password' => __('auth.password'),
+      ]);
+    }
+
+    $user->tokens()->delete();
+    $user->delete();
+
+    return response()->noContent();
   }
 
   /**

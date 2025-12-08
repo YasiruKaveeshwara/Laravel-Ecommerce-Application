@@ -20,8 +20,8 @@ class ImageService
     $original = "{$folder}/original_{$name}";
     $optimized = "{$folder}/{$name}";
 
-    // store original (verbatim) in public disk
-    $file->storeAs('public', $original);
+    // store original (verbatim) in public disk so we can serve it later
+    Storage::disk('public')->put($original, file_get_contents($file->getRealPath()));
 
     // read, scale
     $img = Image::read($file->getRealPath())

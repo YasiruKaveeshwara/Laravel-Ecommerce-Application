@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Menu, ShoppingCart, LogIn, Search, X } from "lucide-react";
+import { Menu, ShoppingCart, LogIn, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth";
@@ -18,15 +17,15 @@ const STORE_LINKS = [
 ];
 
 const ADMIN_LINKS = [
+  { href: "/admin", label: "Storefront" },
   { href: "/admin/products", label: "Inventory" },
   { href: "/admin/products/new", label: "Add Product" },
-  { href: "/admin/users", label: "Customers" },
+  { href: "/admin/customers", label: "Customers" },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const user = useAuth((s) => s.user);
@@ -46,13 +45,6 @@ export function Navbar() {
   useEffect(() => {
     hydrate();
   }, [hydrate]);
-
-  const onSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const query = q.trim();
-    setOpen(false);
-    if (query) router.push(`/?q=${encodeURIComponent(query)}`);
-  };
 
   return (
     <header
@@ -77,20 +69,6 @@ export function Navbar() {
                     <X />
                   </Button>
                 </SheetHeader>
-
-                {/* Mobile search */}
-                <form onSubmit={onSearch} className='p-4 border-b border-border flex gap-2'>
-                  <Input
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder='Search products'
-                    aria-label='Search products'
-                  />
-                  <Button type='submit' aria-label='Search'>
-                    <Search className='mr-2 h-4 w-4' />
-                    Search
-                  </Button>
-                </form>
 
                 {/* Mobile nav links */}
                 <nav className='p-2'>
@@ -142,6 +120,24 @@ export function Navbar() {
                     </div>
                   )}
                 </div>
+
+                {user && (
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setOpen(false);
+                      router.push("/profile");
+                    }}
+                    className='mx-4 mb-4 flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-left text-sm shadow-card'>
+                    <div className='flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-600'>
+                      <User className='h-5 w-5' />
+                    </div>
+                    <div>
+                      <p className='font-semibold text-slate-900'>{user.first_name}</p>
+                      <p className='text-xs text-muted'>Profile & settings</p>
+                    </div>
+                  </button>
+                )}
               </SheetContent>
             </Sheet>
           </div>
@@ -172,27 +168,15 @@ export function Navbar() {
           {/* Spacer */}
           <div className='flex-1' />
 
-          {/* Desktop search */}
-          <form onSubmit={onSearch} className='hidden md:flex items-center gap-2 w-[320px]'>
-            <div className='relative flex-1'>
-              <Input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder='Search products'
-                aria-label='Search products'
-                className='pl-9'
-              />
-              <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted pointer-events-none' />
-            </div>
-            <Button type='submit' aria-label='Search'>
-              Search
-            </Button>
-          </form>
-
           {/* Actions */}
           <div className='flex items-center gap-2'>
             {user ? (
               <>
+                <Link
+                  href='/profile'
+                  className='hidden md:inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-border text-slate-600 hover:text-sky-600'>
+                  <User className='h-5 w-5' />
+                </Link>
                 {isAdmin ? (
                   <Link href='/admin/products' className='hidden md:inline-flex text-sm text-muted hover:text-sky-600'>
                     Admin Console
@@ -240,14 +224,6 @@ export function Navbar() {
             )}
           </div>
         </div>
-
-        {/* Mobile search under the bar (optional alternative) */}
-        {/* <div className="md:hidden py-2">
-          <form onSubmit={onSearch} className="flex gap-2">
-            <Input value={q} onChange={(e)=>setQ(e.target.value)} placeholder="Search products" aria-label="Search products"/>
-            <Button type="submit" aria-label="Search"><Search className="h-4 w-4"/></Button>
-          </form>
-        </div> */}
       </div>
     </header>
   );
