@@ -36,7 +36,7 @@ export default async function Home({
     <div>
       <HeroBanner />
 
-      <section className='mx-auto max-w-6xl px-4 py-10'>
+      <section className='mx-auto py-10'>
         {/* Responsive two-column: filters (left) + content (right) */}
         <div className='grid grid-cols-1 gap-8 lg:grid-cols-12'>
           {/* Filters: left rail (sticky on large screens) */}

@@ -10,6 +10,7 @@ import { useAuth } from "@/store/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { rememberProductSelection } from "@/lib/productSelection";
+import { notifyError, notifyInfo } from "@/lib/notify";
 
 const DATE_FILTERS = [
   { id: "all", label: "All time", days: null },
@@ -33,7 +34,10 @@ export default function AdminProducts() {
     const token = localStorage.getItem("token");
     api("/admin/products", { authToken: token })
       .then((res) => setItems(res.data || []))
-      .catch((e: any) => alert(e?.message || "Unable to load inventory"))
+      .catch((error: any) => {
+        const message = error?.message || "Unable to load inventory";
+        notifyError("Inventory fetch failed", message);
+      })
       .finally(() => setLoading(false));
   }, [fetchMe]);
 
@@ -215,10 +219,13 @@ export default function AdminProducts() {
                         variant='ghost'
                         size='sm'
                         className='text-slate-600'
-                        onClick={() => alert("Edit coming soon")}>
+                        onClick={() => notifyInfo("Device editing", "This workflow ships soon.")}>
                         Edit
                       </Button>
-                      <Button variant='outline' size='sm' onClick={() => alert("Delete coming soon")}>
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => notifyInfo("Archive coming soon", "Bulk delete will land shortly.")}>
                         Delete
                       </Button>
                     </div>

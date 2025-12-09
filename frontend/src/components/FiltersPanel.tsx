@@ -5,12 +5,6 @@ import { SlidersHorizontal } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const SORT_OPTIONS = [
-  { id: "all", label: "All" },
-  { id: "new", label: "New" },
-  { id: "popular", label: "Popular" },
-  { id: "price", label: "Price" },
-];
 
 const CATEGORY_OPTIONS = [
   { id: "all", label: "All" },
@@ -22,11 +16,13 @@ const CATEGORY_OPTIONS = [
 
 const BRAND_OPTIONS = [
   { id: "all", label: "All" },
-  { id: "galaxy", label: "Galaxy" },
-  { id: "iphone", label: "iPhone" },
+  { id: "samsung", label: "Samsung" },
+  { id: "apple", label: "Apple" },
   { id: "pixel", label: "Pixel" },
   { id: "oneplus", label: "OnePlus" },
   { id: "xiaomi", label: "Xiaomi" },
+  { id: "sony", label: "Sony" },
+  { id: "honor", label: "Honor" },
 ];
 
 const PRICE_MIN = 0;
@@ -70,23 +66,11 @@ export function FiltersPanel() {
             <DualRangeSlider value={price} onChange={setPrice} />
           </div>
 
-          <FilterGroup title='Sort By' options={SORT_OPTIONS} value={sort} onChange={setSort} />
+          
           <FilterGroup title='Category' options={CATEGORY_OPTIONS} value={category} onChange={setCategory} />
           <FilterGroup title='Brand' options={BRAND_OPTIONS} value={brand} onChange={setBrand} />
 
-          <div className='space-y-3'>
-            <h4 className='text-sm font-medium'>Top Features</h4>
-            <div className='flex flex-wrap gap-2'>
-              {["5G", "1TB", "144Hz", "Dual SIM"].map((feature) => (
-                <button
-                  key={feature}
-                  type='button'
-                  className='rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted transition hover:border-sky-400 hover:text-sky-600'>
-                  {feature}
-                </button>
-              ))}
-            </div>
-          </div>
+          
         </section>
 
         <div className='mt-6 flex gap-3'>

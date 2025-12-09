@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/store/cart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { dismissToast, notifyError, notifyLoading, notifySuccess } from "@/lib/notify";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -31,11 +32,18 @@ export default function CheckoutPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsPlacingOrder(true);
-
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    clearCart();
-    router.push("/?order=success");
+    const toastId = notifyLoading("Processing payment…", "Hold tight while we confirm your order.");
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      clearCart();
+      notifySuccess("Order placed!", "We just sent a confirmation email.");
+      router.push("/?order=success");
+    } catch (error) {
+      notifyError("Payment failed", "Please try again.");
+    } finally {
+      dismissToast(toastId);
+      setIsPlacingOrder(false);
+    }
   };
 
   return (

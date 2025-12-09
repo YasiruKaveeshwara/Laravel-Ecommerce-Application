@@ -9,6 +9,7 @@ import { clearProductSelection, readProductSelection } from "@/lib/productSelect
 import { useAuth } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import { ProductDetail } from "@/components/ProductDetail";
+import { notifyError, notifyInfo } from "@/lib/notify";
 
 export default function AdminProductViewPage() {
   const router = useRouter();
@@ -33,7 +34,11 @@ export default function AdminProductViewPage() {
     }
     api("/admin/products/detail", { method: "POST", body: { product_id: stored.id } })
       .then((res: Product) => setProduct(res))
-      .catch((err: any) => setError(err?.message || "Unable to load product."))
+      .catch((err: any) => {
+        const message = err?.message || "Unable to load product.";
+        setError(message);
+        notifyError("Product load failed", message);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -53,14 +58,14 @@ export default function AdminProductViewPage() {
             variant='outline'
             className='flex items-center gap-2'
             disabled={!product}
-            onClick={() => alert("Edit experience coming soon")}>
+            onClick={() => notifyInfo("Edit panel coming soon", "Publishing tools are being finalized.")}>
             <Pencil className='h-4 w-4' /> Edit device
           </Button>
           <Button
             variant='outline'
             className='flex items-center gap-2 border-rose-300 text-rose-600'
             disabled={!product}
-            onClick={() => alert("Archive workflow coming soon")}>
+            onClick={() => notifyInfo("Archive workflow in progress", "Expect this shortly.")}>
             <Trash2 className='h-4 w-4' /> Archive
           </Button>
         </div>

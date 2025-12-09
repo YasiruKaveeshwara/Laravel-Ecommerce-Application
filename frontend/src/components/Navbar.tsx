@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth";
+import { notifySuccess } from "@/lib/notify";
 
 const STORE_LINKS = [
   { href: "/products", label: "Phones" },
@@ -111,6 +112,7 @@ export function Navbar() {
                           logout();
                           setOpen(false);
                           router.push("/");
+                          notifySuccess("Signed out", "You are safely logged out.");
                         }}>
                         Logout
                       </Button>
@@ -197,6 +199,7 @@ export function Navbar() {
                   onClick={() => {
                     logout();
                     router.push("/");
+                    notifySuccess("Signed out", "See you next time.");
                   }}>
                   Logout
                 </Button>

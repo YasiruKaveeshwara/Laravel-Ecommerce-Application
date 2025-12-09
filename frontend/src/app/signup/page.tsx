@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/store/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { notifyError, notifySuccess } from "@/lib/notify";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -30,9 +31,11 @@ export default function SignupPage() {
     try {
       const data = await signup(form);
       const fallback = data.user.role === "administrator" ? "/admin/products" : "/";
+      notifySuccess("Account created", `Welcome to Pulse Mobile, ${data.user.first_name}!`);
       router.push(data.redirect_to || fallback);
     } catch (error: unknown) {
-      alert(error?.message || "Unable to sign up right now.");
+      const message = error instanceof Error ? error.message : "Unable to sign up right now.";
+      notifyError("Sign-up failed", message);
     } finally {
       setLoading(false);
     }

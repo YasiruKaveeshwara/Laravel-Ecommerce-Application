@@ -7,6 +7,7 @@ import { useAuth } from "@/store/auth";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { notifyError, notifySuccess } from "@/lib/notify";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -21,9 +22,11 @@ export default function LoginPage() {
     try {
       const data = await login(email, password);
       const fallback = data.user.role === "administrator" ? "/admin/products" : "/";
+      notifySuccess("Signed in", `Welcome back, ${data.user.first_name}!`);
       router.push(data.redirect_to || fallback);
-    } catch (e: unknown) {
-      alert(e.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unable to sign in right now.";
+      notifyError("Sign-in failed", message);
     } finally {
       setLoading(false);
     }

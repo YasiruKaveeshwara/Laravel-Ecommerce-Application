@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react";
 import { useCart } from "@/store/cart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { notifyInfo, notifySuccess, notifyWarning } from "@/lib/notify";
 
 export default function CartPage() {
   const router = useRouter();
@@ -52,7 +53,14 @@ export default function CartPage() {
                   <p className='text-sm text-muted line-clamp-2'>{item.product.description}</p>
                 </div>
                 <div className='flex flex-wrap items-center gap-3'>
-                  <QuantityInput value={item.quantity} onChange={(next) => updateQuantity(item.product.id, next)} />
+                  <QuantityInput
+                    value={item.quantity}
+                    onChange={(next) => {
+                      if (next === item.quantity) return;
+                      updateQuantity(item.product.id, next);
+                      notifySuccess("Quantity updated", `${item.product.name} ×${next}`);
+                    }}
+                  />
                   <span className='ml-auto text-lg font-semibold text-slate-900'>
                     ${(item.unitPrice * item.quantity).toFixed(2)}
                   </span>
@@ -60,7 +68,10 @@ export default function CartPage() {
                     type='button'
                     variant='ghost'
                     className='text-rose-600'
-                    onClick={() => removeItem(item.product.id)}>
+                    onClick={() => {
+                      removeItem(item.product.id);
+                      notifyWarning("Removed from cart", item.product.name);
+                    }}>
                     <Trash2 className='h-4 w-4' />
                     Remove
                   </Button>
@@ -85,7 +96,12 @@ export default function CartPage() {
               <span>${subtotal.toFixed(2)}</span>
             </div>
           </div>
-          <Button className='mt-4 w-full' onClick={() => router.push("/checkout")}>
+          <Button
+            className='mt-4 w-full'
+            onClick={() => {
+              notifyInfo("Heading to checkout", "Review shipping and payment next.");
+              router.push("/checkout");
+            }}>
             Proceed to checkout
           </Button>
         </div>

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { Product } from "@/types/product";
 import { rememberProductSelection, type ProductSelectionScope } from "@/lib/productSelection";
 import { useCart } from "@/store/cart";
+import { notifySuccess } from "@/lib/notify";
 
 type ProductCardProps = {
   p: Product;
@@ -26,7 +27,10 @@ export function ProductCard({ p, size = "default", detailScope = "storefront" }:
     router.push(detailScope === "admin" ? "/admin/products/view" : "/products/view");
   };
 
-  const onAddToCart = () => addItem(p, 1);
+  const onAddToCart = () => {
+    addItem(p, 1);
+    notifySuccess("Added to cart", `${p.name} is ready for checkout.`);
+  };
 
   return (
     <Card

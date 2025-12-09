@@ -5,6 +5,7 @@ import type { Product } from "@/types/product";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
+import { notifyInfo, notifySuccess } from "@/lib/notify";
 
 const FEATURE_BULLETS = [
   "Pro-grade camera tuning with optical stabilization",
@@ -31,9 +32,13 @@ export function ProductDetail({ product, context = "storefront" }: ProductDetail
       return Math.min(Math.max(next, 1), 10);
     });
 
-  const handleAdd = () => addItem(product, quantity);
+  const handleAdd = () => {
+    addItem(product, quantity);
+    notifySuccess("Added to cart", `${product.name} ×${quantity}`);
+  };
   const handleBuyNow = () => {
     addItem(product, quantity);
+    notifyInfo("Redirecting to checkout", `${product.name} added to your cart.`);
     router.push("/checkout");
   };
   return (

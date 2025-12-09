@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/store/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { notifyError, notifyInfo } from "@/lib/notify";
 
 type AdminUser = {
   id: number;
@@ -54,7 +55,10 @@ export default function AdminCustomers() {
         setUsers(res?.data || []);
         setMeta(res?.meta || null);
       })
-      .catch((error: any) => alert(error?.message || "Unable to load customers"))
+      .catch((error: any) => {
+        const message = error?.message || "Unable to load customers";
+        notifyError("Customer fetch failed", message);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -218,7 +222,7 @@ export default function AdminCustomers() {
                       <Button
                         variant='outline'
                         className='h-9 rounded-2xl px-3'
-                        onClick={() => alert("Management panel coming soon")}>
+                        onClick={() => notifyInfo("Management tools on the way", "Stay tuned.")}>
                         Manage
                       </Button>
                     </div>

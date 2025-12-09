@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { notifyError, notifyInfo, notifySuccess } from "@/lib/notify";
 
 const BRAND_PRESETS = ["Pulse", "Galaxy", "iPhone", "Pixel", "OnePlus", "Nothing"];
 const CATEGORY_OPTIONS = [
@@ -65,12 +66,14 @@ export default function NewProduct() {
     setForm({ ...INITIAL_FORM_STATE });
     setFile(null);
     setPreview(null);
+    notifyInfo("Form reset", "Start fresh with the latest device details.");
   };
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!file) {
-      return alert("Upload at least one product photo");
+      notifyError("Upload required", "Add at least one hero image before publishing.");
+      return;
     }
     setLoading(true);
     const payload = new FormData();
@@ -83,9 +86,11 @@ export default function NewProduct() {
 
     try {
       await api("/admin/products", { method: "POST", isForm: true, body: payload });
+      notifySuccess("Device published", `${form.name} is now live in inventory.`);
       router.push("/admin/products");
     } catch (error: any) {
-      alert(error?.message || "Unable to save product");
+      const message = error?.message || "Unable to save product";
+      notifyError("Publish failed", message);
     } finally {
       setLoading(false);
     }
