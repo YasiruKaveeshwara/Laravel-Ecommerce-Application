@@ -16,15 +16,17 @@ const CATEGORY_OPTIONS = [
   { value: "budget", label: "Budget" },
 ];
 
+const INITIAL_FORM_STATE = {
+  name: "",
+  brand: "Pulse",
+  category: "flagship",
+  price: "899",
+  description: "",
+};
+
 export default function NewProduct() {
   const router = useRouter();
-  const [form, setForm] = useState({
-    name: "",
-    brand: "Pulse",
-    category: "flagship",
-    price: "899",
-    description: "",
-  });
+  const [form, setForm] = useState({ ...INITIAL_FORM_STATE });
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -38,6 +40,15 @@ export default function NewProduct() {
     []
   );
 
+  const launchStats = useMemo(
+    () => [
+      { label: "Brand presets", value: BRAND_PRESETS.length.toString(), hint: "One-tap autofill" },
+      { label: "Categories", value: CATEGORY_OPTIONS.length.toString(), hint: "Curated device types" },
+      { label: "Assets", value: preview ? "1 / 1" : "0 / 1", hint: "Hero image status" },
+    ],
+    [preview]
+  );
+
   const updateField =
     (key: keyof typeof form) =>
     (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -48,6 +59,12 @@ export default function NewProduct() {
     const nextFile = event.target.files?.[0] ?? null;
     setFile(nextFile);
     setPreview(nextFile ? URL.createObjectURL(nextFile) : null);
+  };
+
+  const resetForm = () => {
+    setForm({ ...INITIAL_FORM_STATE });
+    setFile(null);
+    setPreview(null);
   };
 
   const onSubmit = async (event: React.FormEvent) => {
@@ -75,30 +92,32 @@ export default function NewProduct() {
   };
 
   return (
-    <div className='mx-auto flex w-full max-w-6xl flex-col gap-8'>
-      <div className='rounded-3xl border border-border bg-white/70 p-6 shadow-card backdrop-blur'>
-        <div className='flex flex-col gap-3 md:flex-row md:items-center md:justify-between'>
-          <div>
-            <p className='text-sm font-semibold uppercase tracking-[0.3em] text-sky-500'>Admin Studio</p>
-            <h1 className='text-3xl font-semibold text-slate-900'>Create a device listing</h1>
-            <p className='text-sm text-muted'>Upload assets, set pricing, and publish instantly to the storefront.</p>
-          </div>
-          <div className='flex gap-3 text-xs text-muted'>
-            <div className='rounded-2xl bg-sky-50 px-4 py-3 text-center'>
-              <p className='text-slate-500'>Avg. fulfillment</p>
-              <p className='text-lg font-semibold text-sky-600'>2.3 days</p>
-            </div>
-            <div className='rounded-2xl bg-emerald-50 px-4 py-3 text-center'>
-              <p className='text-slate-500'>Inventory health</p>
-              <p className='text-lg font-semibold text-emerald-600'>Stable</p>
-            </div>
-          </div>
+    <div className='space-y-6'>
+      <div className='flex flex-wrap items-start gap-4'>
+        <div>
+          <p className='text-sm font-semibold uppercase tracking-[0.3em] text-slate-500'>Product studio</p>
+          <h1 className='text-3xl font-semibold text-slate-900'>Add a device</h1>
+          <p className='text-sm text-muted'>Match the same admin look-and-feel used in inventory and customer views.</p>
+        </div>
+        <div className='ml-auto flex items-center gap-3'>
+          <Button variant='ghost' className='rounded-2xl border border-border px-4' type='button' onClick={resetForm}>
+            Reset form
+          </Button>
+          <Button className='rounded-2xl px-5' type='button' onClick={() => router.push("/admin/products")}>
+            Back to inventory
+          </Button>
         </div>
       </div>
 
-      <form onSubmit={onSubmit} className='grid gap-6 lg:grid-cols-[2fr,1fr]'>
+      <div className='grid gap-4 md:grid-cols-3'>
+        {launchStats.map((stat) => (
+          <SummaryTile key={stat.label} label={stat.label} value={stat.value} hint={stat.hint} />
+        ))}
+      </div>
+
+      <form onSubmit={onSubmit} className='grid gap-6 lg:grid-cols-[1.7fr,1fr]'>
         <div className='space-y-6'>
-          <section className='rounded-3xl border border-border bg-white/70 p-6 shadow-card backdrop-blur'>
+          <section className='rounded-3xl border border-border bg-white/80 p-6 shadow-card backdrop-blur'>
             <h2 className='text-lg font-semibold text-slate-900'>Product details</h2>
             <p className='text-sm text-muted'>Tell shoppers what makes this release special.</p>
             <div className='mt-6 grid gap-4 sm:grid-cols-2'>
@@ -159,7 +178,7 @@ export default function NewProduct() {
             </div>
           </section>
 
-          <section className='rounded-3xl border border-dashed border-sky-200 bg-white/80 p-6 text-center shadow-card'>
+          <section className='rounded-3xl border border-dashed border-sky-200 bg-white/70 p-6 text-center shadow-card backdrop-blur'>
             <div className='mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-sky-50 text-sky-600'>
               <Upload className='h-8 w-8' />
             </div>
@@ -215,6 +234,16 @@ export default function NewProduct() {
           </div>
         </aside>
       </form>
+    </div>
+  );
+}
+
+function SummaryTile({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div className='rounded-3xl border border-border bg-white/80 p-5 shadow-card'>
+      <p className='text-xs uppercase tracking-[0.3em] text-slate-500'>{label}</p>
+      <p className='mt-2 text-2xl font-semibold text-slate-900'>{value}</p>
+      <p className='text-xs text-muted'>{hint}</p>
     </div>
   );
 }

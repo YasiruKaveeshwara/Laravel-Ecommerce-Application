@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -64,7 +65,10 @@ export function Navbar() {
               </SheetTrigger>
               <SheetContent side='left' className='w-[88vw] p-0'>
                 <SheetHeader className='p-4 border-b border-border flex-row items-center justify-between'>
-                  <SheetTitle className='text-base'>Browse</SheetTitle>
+                  <div className='flex items-center gap-3'>
+                    <Image src='/logo.png' alt='Pulse Mobile logo' width={140} height={40} className='h-8 w-auto' />
+                    <SheetTitle className='text-base'>Browse</SheetTitle>
+                  </div>
                   <Button variant='ghost' onClick={() => setOpen(false)} aria-label='Close menu'>
                     <X />
                   </Button>
@@ -143,8 +147,9 @@ export function Navbar() {
           </div>
 
           {/* Logo */}
-          <Link href='/' className='text-lg font-semibold tracking-tight text-sky-600'>
-            Pulse Mobile
+          <Link href='/' className='flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-900'>
+            <Image src='/logo.png' alt='Pulse Mobile logo' width={160} height={44} className='h-9 w-auto' />
+            <span className='text-sky-600'>Pulse Mobile</span>
           </Link>
 
           {/* Desktop nav */}

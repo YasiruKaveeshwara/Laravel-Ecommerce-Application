@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/store/auth";
@@ -39,9 +40,12 @@ export default function SignupPage() {
 
   return (
     <div className='mx-auto max-w-md space-y-6'>
-      <div>
-        <h1 className='text-3xl font-semibold text-slate-900'>Create your account</h1>
-        <p className='text-sm text-muted'>Sign up to start shopping the latest Pulse Mobile drops.</p>
+      <div className='flex flex-col items-center gap-3 text-center'>
+        <Image src='/logo.png' alt='Pulse Mobile logo' width={160} height={44} className='h-14 w-auto' />
+        <div>
+          <h1 className='text-3xl font-semibold text-slate-900'>Create your account</h1>
+          <p className='text-sm text-muted'>Sign up to start shopping the latest Pulse Mobile drops.</p>
+        </div>
       </div>
 
       <form onSubmit={onSubmit} className='space-y-4'>

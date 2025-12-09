@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/store/auth";
 import { useRouter } from "next/navigation";
@@ -30,9 +31,12 @@ export default function LoginPage() {
 
   return (
     <div className='max-w-sm mx-auto space-y-4'>
-      <div>
-        <h1 className='text-3xl font-semibold text-slate-900'>Welcome back</h1>
-        <p className='text-sm text-muted'>Sign in to manage orders, track devices, and check out faster.</p>
+      <div className='flex flex-col items-center gap-3 text-center'>
+        <Image src='/logo.png' alt='Pulse Mobile logo' width={160} height={44} className='h-14 w-auto' />
+        <div>
+          <h1 className='text-3xl font-semibold text-slate-900'>Welcome back</h1>
+          <p className='text-sm text-muted'>Sign in to manage orders, track devices, and check out faster.</p>
+        </div>
       </div>
       <form onSubmit={onSubmit} className='space-y-3'>
         <Input type='email' value={email} onChange={(e) => setEmail(e.target.value)} placeholder='Email' required />
