@@ -14,7 +14,6 @@ const BRAND_BASE: CatalogOption[] = [
   { id: "apple", label: "Apple" },
   { id: "samsung", label: "Samsung" },
   { id: "pixel", label: "Pixel" },
-  { id: "oneplus", label: "OnePlus" },
   { id: "xiaomi", label: "Xiaomi" },
   { id: "sony", label: "Sony" },
   { id: "honor", label: "Honor" },

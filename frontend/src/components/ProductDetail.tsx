@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Product } from "@/types/product";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
 import { notifyInfo, notifySuccess } from "@/lib/notify";
-import { Pencil, Trash2 } from "lucide-react";
+import { BadgeCheck, Pencil, Phone, Rocket, ShieldCheck, Trash2 } from "lucide-react";
 
 type ProductDetailProps = {
 	product: Product;
@@ -41,10 +41,20 @@ export function ProductDetail({ product, context = "storefront", onAdminEdit, on
 		router.push("/checkout");
 	};
 
+	const featureHighlights = useMemo(
+		() => [
+			{ icon: ShieldCheck, title: "Warranty", text: "2-year Pulse Shield extended coverage." },
+			{ icon: Rocket, title: "Returns", text: "Authorized service centers and easy returns." },
+			{ icon: BadgeCheck, title: "Verified", text: "TRCL approved." },
+			{ icon: Phone, title: "Support", text: "24/7 customer support for all your needs." },
+		],
+		[]
+	);
+
 	return (
 		<section className='grid gap-6 lg:grid-cols-2 lg:items-stretch'>
 			<div className='h-full rounded-3xl border border-border bg-white/90 p-6 shadow-card backdrop-blur'>
-				<div className='flex h-full rounded-3xl border border-border bg-gradient-to-br from-slate-50 to-white shadow-card'>
+				<div className='flex h-full rounded-3xl border border-border bg-linear-to-br from-slate-50 to-white shadow-card'>
 					{/* eslint-disable-next-line @next/next/no-img-element */}
 					<img
 						src={product.image_url || "/placeholder.svg"}
@@ -63,7 +73,7 @@ export function ProductDetail({ product, context = "storefront", onAdminEdit, on
 					</p>
 					<p className='mt-5 text-3xl font-semibold text-sky-600'>${priceValue.toFixed(2)}</p>
 
-					<dl className='grid gap-4 mt-4 text-sm text-slate-600 sm:grid-cols-2'>
+					<dl className='grid gap-4 mt-6 text-sm text-slate-600 sm:grid-cols-2'>
 						<DetailItem label='Category' value={formatLabel(product.category) ?? "Unassigned"} />
 						<DetailItem label='Brand' value={brandLabel} />
 
@@ -74,8 +84,23 @@ export function ProductDetail({ product, context = "storefront", onAdminEdit, on
 							</>
 						)}
 					</dl>
+					<aside className='mt-6'>
+						<ul className='grid gap-3 sm:grid-cols-2'>
+							{featureHighlights.map(({ icon: Icon, title, text }) => (
+								<li key={title} className='flex gap-3 rounded-2xl border border-border/80 p-3'>
+									<div className='rounded-2xl bg-slate-50 p-2 text-sky-600'>
+										<Icon className='h-5 w-5' />
+									</div>
+									<div>
+										<p className='text-sm font-semibold text-slate-900'>{title}</p>
+										<p className='text-xs text-muted'>{text}</p>
+									</div>
+								</li>
+							))}
+						</ul>
+					</aside>
 					{!isAdmin ? (
-						<div className='mt-5 space-y-4'>
+						<div className='mt-6 space-y-4'>
 							<div className='flex items-center justify-between'>
 								<span className='text-sm font-medium text-slate-600'>Quantity</span>
 								<div className='flex items-center gap-3'>
@@ -109,7 +134,7 @@ export function ProductDetail({ product, context = "storefront", onAdminEdit, on
 							</div>
 						</div>
 					) : (
-						<div className='mt-5 grid gap-3 sm:grid-cols-2'>
+						<div className='mt-6 grid gap-3 sm:grid-cols-2'>
 							<Button type='button' className='rounded-2xl px-5' onClick={onAdminEdit}>
 								<Pencil className='h-4 w-4 mr-2' /> Edit device
 							</Button>
