@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
@@ -66,8 +67,24 @@ class ProductController extends Controller
     $q        = $request->query('q');
     $perPage  = (int) ($request->query('per_page', 20));
     $perPage  = $perPage > 0 && $perPage <= 100 ? $perPage : 20;
+    $minPrice = $request->query('min_price');
+    $maxPrice = $request->query('max_price');
+    $category = $request->query('category');
+    $brand    = $request->query('brand');
+    $added    = $request->query('added_within_days');
 
-    return $this->products->listAdmin($q, $perPage);
+    $minPrice = is_numeric($minPrice) ? (float) $minPrice : null;
+    $maxPrice = is_numeric($maxPrice) ? (float) $maxPrice : null;
+    $category = $category && $category !== 'all' ? $category : null;
+    $brand    = $brand && $brand !== 'all' ? $brand : null;
+    $added    = is_numeric($added) ? (int) $added : null;
+    $added    = $added && $added > 0 ? $added : null;
+
+    if ($minPrice !== null && $maxPrice !== null && $minPrice > $maxPrice) {
+      [$minPrice, $maxPrice] = [$maxPrice, $minPrice];
+    }
+
+    return $this->products->listAdmin($q, $perPage, $minPrice, $maxPrice, $category, $brand, $added);
   }
 
   /**
@@ -100,7 +117,7 @@ class ProductController extends Controller
     $data = $request->validate([
       'name'        => ['required', 'string', 'max:255'],
       'brand'       => ['required', 'string', 'max:255'],
-      'category'    => ['required', 'string', 'in:flagship,foldables,midrange,budget'],
+      'category'    => ['required', 'string', Rule::in(array_keys(config('catalog.categories', [])))],
       'description' => ['nullable', 'string'],
       'price'       => ['required', 'numeric', 'min:0'],
       'image'       => ['required', 'image', 'max:5120'], // 5MB
@@ -120,7 +137,7 @@ class ProductController extends Controller
     $data = $request->validate([
       'name'        => ['sometimes', 'string', 'max:255'],
       'brand'       => ['sometimes', 'string', 'max:255'],
-      'category'    => ['sometimes', 'string', 'in:flagship,foldables,midrange,budget'],
+      'category'    => ['sometimes', 'string', Rule::in(array_keys(config('catalog.categories', [])))],
       'description' => ['sometimes', 'nullable', 'string'],
       'price'       => ['sometimes', 'numeric', 'min:0'],
       'image'       => ['sometimes', 'image', 'max:5120'],

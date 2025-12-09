@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Product;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -42,9 +43,24 @@ class ProductService
   }
 
   /** Admin list */
-  public function listAdmin(?string $q = null, int $perPage = 20)
-  {
+  public function listAdmin(
+    ?string $q = null,
+    int $perPage = 20,
+    ?float $minPrice = null,
+    ?float $maxPrice = null,
+    ?string $category = null,
+    ?string $brand = null,
+    ?int $addedWithinDays = null
+  ) {
     return $this->searchableQuery(Product::query(), $q)
+      ->when($minPrice !== null, fn($query) => $query->where('price', '>=', $minPrice))
+      ->when($maxPrice !== null, fn($query) => $query->where('price', '<=', $maxPrice))
+      ->when($category, fn($query) => $query->where('category', $category))
+      ->when($brand, fn($query) => $query->whereRaw('LOWER(brand) = ?', [mb_strtolower($brand)]))
+      ->when($addedWithinDays !== null, function ($query) use ($addedWithinDays) {
+        $cutoff = Carbon::now()->subDays($addedWithinDays)->startOfDay();
+        $query->where('created_at', '>=', $cutoff);
+      })
       ->latest()
       ->paginate($perPage);
   }

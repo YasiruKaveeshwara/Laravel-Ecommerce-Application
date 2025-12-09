@@ -5,25 +5,7 @@ import { Search, SlidersHorizontal } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-const CATEGORY_OPTIONS = [
-  { id: "all", label: "All" },
-  { id: "flagship", label: "Flagships" },
-  { id: "foldables", label: "Foldables" },
-  { id: "midrange", label: "Mid-range" },
-  { id: "budget", label: "Budget" },
-];
-
-const BRAND_OPTIONS = [
-  { id: "all", label: "All" },
-  { id: "samsung", label: "Samsung" },
-  { id: "apple", label: "Apple" },
-  { id: "pixel", label: "Pixel" },
-  { id: "oneplus", label: "OnePlus" },
-  { id: "xiaomi", label: "Xiaomi" },
-  { id: "sony", label: "Sony" },
-  { id: "honor", label: "Honor" },
-];
+import { BRAND_FILTER_OPTIONS, CATEGORY_FILTER_OPTIONS, type CatalogOption } from "@/constants/catalog";
 
 const PRICE_MIN = 0;
 const PRICE_MAX = 5000;
@@ -94,8 +76,13 @@ export function FiltersPanel({
             <DualRangeSlider value={price} onChange={onPriceChange} />
           </div>
 
-          <FilterGroup title='Category' options={CATEGORY_OPTIONS} value={category} onChange={onCategoryChange} />
-          <FilterGroup title='Brand' options={BRAND_OPTIONS} value={brand} onChange={onBrandChange} />
+          <FilterGroup
+            title='Category'
+            options={CATEGORY_FILTER_OPTIONS}
+            value={category}
+            onChange={onCategoryChange}
+          />
+          <FilterGroup title='Brand' options={BRAND_FILTER_OPTIONS} value={brand} onChange={onBrandChange} />
         </section>
 
         <div className='mt-6 flex gap-3'>
@@ -132,7 +119,7 @@ function FilterGroup({
   onChange,
 }: {
   title: string;
-  options: Array<{ id: string; label: string }>;
+  options: CatalogOption[];
   value: string;
   onChange: (next: string) => void;
 }) {

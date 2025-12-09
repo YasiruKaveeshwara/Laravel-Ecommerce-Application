@@ -8,14 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { notifyError, notifyInfo, notifySuccess } from "@/lib/notify";
-
-const BRAND_PRESETS = ["Pulse", "Galaxy", "iPhone", "Pixel", "OnePlus", "Nothing"];
-const CATEGORY_OPTIONS = [
-  { value: "flagship", label: "Flagship" },
-  { value: "foldables", label: "Foldable" },
-  { value: "midrange", label: "Mid-range" },
-  { value: "budget", label: "Budget" },
-];
+import { BRAND_PRESET_LABELS, CATEGORY_OPTIONS } from "@/constants/catalog";
 
 const INITIAL_FORM_STATE = {
   name: "",
@@ -43,7 +36,7 @@ export default function NewProduct() {
 
   const launchStats = useMemo(
     () => [
-      { label: "Brand presets", value: BRAND_PRESETS.length.toString(), hint: "One-tap autofill" },
+      { label: "Brand presets", value: BRAND_PRESET_LABELS.length.toString(), hint: "One-tap autofill" },
       { label: "Categories", value: CATEGORY_OPTIONS.length.toString(), hint: "Curated device types" },
       { label: "Assets", value: preview ? "1 / 1" : "0 / 1", hint: "Hero image status" },
     ],
@@ -136,7 +129,7 @@ export default function NewProduct() {
                   <Input value={form.brand} onChange={updateField("brand")} className='flex-1' required />
                 </div>
                 <div className='flex flex-wrap gap-2 text-xs text-muted'>
-                  {BRAND_PRESETS.map((preset) => (
+                  {BRAND_PRESET_LABELS.map((preset) => (
                     <button
                       key={preset}
                       type='button'
@@ -158,7 +151,7 @@ export default function NewProduct() {
                   onChange={updateField("category")}
                   className='rounded-2xl border border-border bg-white px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100'>
                   {CATEGORY_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <option key={option.id} value={option.id}>
                       {option.label}
                     </option>
                   ))}

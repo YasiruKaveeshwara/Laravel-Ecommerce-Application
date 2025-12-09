@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { api } from "@/lib/api";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { rememberProductSelection } from "@/lib/productSelection";
 import { notifyError, notifyInfo } from "@/lib/notify";
+import { BRAND_FILTER_OPTIONS, CATEGORY_FILTER_OPTIONS, type CatalogOption } from "@/constants/catalog";
 
 const DATE_FILTERS = [
   { id: "all", label: "All time", days: null },
@@ -23,28 +24,62 @@ const DATE_FILTERS = [
 
 const PER_PAGE = 20;
 
+type AdminFilters = {
+  search: string;
+  brand: string;
+  category: string;
+  minPrice: string;
+  maxPrice: string;
+  date: string;
+};
+
+const createDefaultFilters = (): AdminFilters => ({
+  search: "",
+  brand: "all",
+  category: "all",
+  minPrice: "",
+  maxPrice: "",
+  date: "all",
+});
+
 export default function AdminProducts() {
   const [items, setItems] = useState<Product[]>([]);
-  const [search, setSearch] = useState("");
-  const [brandFilter, setBrandFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("all");
+  const [filters, setFilters] = useState<AdminFilters>(() => createDefaultFilters());
+  const [appliedFilters, setAppliedFilters] = useState<AdminFilters>(() => createDefaultFilters());
+  const appliedFiltersRef = useRef<AdminFilters>(appliedFilters);
   const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fetchMe = useAuth((s) => s.fetchMe);
   const router = useRouter();
 
-  const loadProducts = useCallback(async (targetPage = 1) => {
+  useEffect(() => {
+    appliedFiltersRef.current = appliedFilters;
+  }, [appliedFilters]);
+
+  const loadProducts = useCallback(async (targetPage = 1, override?: AdminFilters) => {
     setLoading(true);
     setError(null);
     try {
       const token = localStorage.getItem("token");
+      const activeFilters = override ?? appliedFiltersRef.current;
+      const searchTerm = activeFilters.search.trim();
+      const minPriceValue = Number.parseFloat(activeFilters.minPrice);
+      const maxPriceValue = Number.parseFloat(activeFilters.maxPrice);
+      const hasMin = Number.isFinite(minPriceValue);
+      const hasMax = Number.isFinite(maxPriceValue);
+      const dateRange = activeFilters.date !== "all" ? Number(activeFilters.date) : undefined;
       const response: PaginatedResponse<Product> | Record<string, unknown> = await api("/admin/products", {
         authToken: token,
         query: {
           page: targetPage,
           per_page: PER_PAGE,
+          q: searchTerm || undefined,
+          brand: activeFilters.brand !== "all" ? activeFilters.brand : undefined,
+          category: activeFilters.category !== "all" ? activeFilters.category : undefined,
+          min_price: hasMin ? minPriceValue : undefined,
+          max_price: hasMax ? maxPriceValue : undefined,
+          added_within_days: dateRange && Number.isFinite(dateRange) ? dateRange : undefined,
         },
       });
       const normalized = normalizePaginatedResponse<Product>(response);
@@ -67,56 +102,38 @@ export default function AdminProducts() {
     loadProducts(1);
   }, [loadProducts]);
 
-  const brandOptions = useMemo(() => {
-    const unique = Array.from(new Set(items.map((p) => (p.brand || "").trim()).filter(Boolean)));
-    return ["all", ...unique];
-  }, [items]);
-
-  const categoryOptions = useMemo(() => {
-    const unique = Array.from(new Set(items.map((p) => (p.category || "").trim()).filter(Boolean)));
-    return ["all", ...unique];
-  }, [items]);
-
-  const filteredItems = useMemo(() => {
-    const now = Date.now();
-    const selectedDateFilter = DATE_FILTERS.find((filter) => filter.id === dateFilter);
-    const cutoff = selectedDateFilter?.days ? now - selectedDateFilter.days * 24 * 60 * 60 * 1000 : null;
-
-    return items
-      .filter((item) => {
-        const term = search.trim().toLowerCase();
-        const matchesSearch = term
-          ? item.name.toLowerCase().includes(term) || (item.brand || "").toLowerCase().includes(term)
-          : true;
-        const matchesBrand = brandFilter === "all" || (item.brand || "").toLowerCase() === brandFilter.toLowerCase();
-        const matchesCategory =
-          categoryFilter === "all" || (item.category || "").toLowerCase() === categoryFilter.toLowerCase();
-        const createdAt = item.created_at ? Date.parse(item.created_at) : null;
-        const matchesDate = cutoff ? (createdAt ? createdAt >= cutoff : false) : true;
-        return matchesSearch && matchesBrand && matchesCategory && matchesDate;
-      })
-      .sort((a, b) => {
-        const dateA = a.created_at ? Date.parse(a.created_at) : 0;
-        const dateB = b.created_at ? Date.parse(b.created_at) : 0;
-        return dateB - dateA;
-      });
-  }, [items, search, brandFilter, categoryFilter, dateFilter]);
-
   const totalInventoryValue = useMemo(() => {
-    return filteredItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
-  }, [filteredItems]);
+    return items.reduce((sum, item) => sum + Number(item.price || 0), 0);
+  }, [items]);
 
   const publishedThisMonth = useMemo(() => {
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
     return items.filter((item) => (item.created_at ? Date.parse(item.created_at) >= cutoff : false)).length;
   }, [items]);
 
-  const resetFilters = () => {
-    setSearch("");
-    setBrandFilter("all");
-    setCategoryFilter("all");
-    setDateFilter("all");
+  const handleApplyFilters = () => {
+    const next = { ...filters };
+    setAppliedFilters(next);
+    loadProducts(1, next);
   };
+
+  const resetFilters = () => {
+    const next = createDefaultFilters();
+    setFilters(next);
+    setAppliedFilters(next);
+    loadProducts(1, next);
+  };
+
+  const filtersDirty = useMemo(() => {
+    return (
+      filters.search !== appliedFilters.search ||
+      filters.brand !== appliedFilters.brand ||
+      filters.category !== appliedFilters.category ||
+      filters.minPrice !== appliedFilters.minPrice ||
+      filters.maxPrice !== appliedFilters.maxPrice ||
+      filters.date !== appliedFilters.date
+    );
+  }, [filters, appliedFilters]);
 
   const openDetail = (product: Product) => {
     rememberProductSelection(product, "admin");
@@ -132,9 +149,6 @@ export default function AdminProducts() {
           <p className='text-sm text-muted'>Monitor launches, forecast stock, and act quickly.</p>
         </div>
         <div className='ml-auto flex items-center gap-3'>
-          <Button variant='ghost' className='rounded-2xl border border-border px-4' onClick={resetFilters}>
-            Reset filters
-          </Button>
           <Link href='/admin/products/new'>
             <Button className='rounded-2xl px-5'>Add device</Button>
           </Link>
@@ -153,34 +167,59 @@ export default function AdminProducts() {
 
       <section className='rounded-3xl border border-border bg-white/80 p-6 shadow-card backdrop-blur'>
         <div className='grid gap-4 md:grid-cols-4'>
-          <div className='md:col-span-2 space-y-2'>
+          <div className='space-y-2 md:col-span-2'>
             <label className='text-sm font-medium text-slate-700'>Search</label>
             <div className='relative'>
               <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted' />
               <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                value={filters.search}
+                onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
                 placeholder='Search model or brand'
                 className='pl-9'
               />
             </div>
           </div>
-          <SelectField label='Brand' value={brandFilter} onChange={setBrandFilter} options={brandOptions} />
-          <SelectField label='Category' value={categoryFilter} onChange={setCategoryFilter} options={categoryOptions} />
+          <SelectField
+            label='Brand'
+            value={filters.brand}
+            onChange={(next) => setFilters((prev) => ({ ...prev, brand: next }))}
+            options={BRAND_FILTER_OPTIONS}
+          />
+          <SelectField
+            label='Category'
+            value={filters.category}
+            onChange={(next) => setFilters((prev) => ({ ...prev, category: next }))}
+            options={CATEGORY_FILTER_OPTIONS}
+          />
           <SelectField
             label='Added date'
-            value={dateFilter}
-            onChange={setDateFilter}
-            options={DATE_FILTERS.map((filter) => filter.id)}
-            labels={DATE_FILTERS.reduce<Record<string, string>>(
-              (acc, filter) => ({ ...acc, [filter.id]: filter.label }),
-              {}
-            )}
+            value={filters.date}
+            onChange={(next) => setFilters((prev) => ({ ...prev, date: next }))}
+            options={DATE_FILTERS.map((filter) => ({ id: filter.id, label: filter.label }))}
           />
+          <NumberField
+            label='Min price'
+            value={filters.minPrice}
+            placeholder='0'
+            onChange={(value) => setFilters((prev) => ({ ...prev, minPrice: value }))}
+          />
+          <NumberField
+            label='Max price'
+            value={filters.maxPrice}
+            placeholder='5000'
+            onChange={(value) => setFilters((prev) => ({ ...prev, maxPrice: value }))}
+          />
+          <div className='flex flex-wrap items-end justify-end gap-3 md:col-span-2'>
+            <Button variant='ghost' className='rounded-2xl border border-border px-4' onClick={resetFilters}>
+              Reset filters
+            </Button>
+            <Button className='rounded-2xl px-6' onClick={handleApplyFilters} disabled={!filtersDirty}>
+              Apply filters
+            </Button>
+          </div>
         </div>
         <div className='mt-4 text-sm text-muted'>
-          Showing {filteredItems.length} of {items.length} products on this page · Page {meta?.current_page ?? 1} of{" "}
-          {meta?.last_page ?? 1}
+          Showing {items.length} products · Page {meta?.current_page ?? 1} of {meta?.last_page ?? 1}
         </div>
       </section>
 
@@ -207,14 +246,14 @@ export default function AdminProducts() {
                   Loading inventory...
                 </td>
               </tr>
-            ) : filteredItems.length === 0 ? (
+            ) : items.length === 0 ? (
               <tr>
                 <td colSpan={6} className='px-5 py-8 text-center text-muted'>
                   No products match these filters yet.
                 </td>
               </tr>
             ) : (
-              filteredItems.map((item) => (
+              items.map((item) => (
                 <tr key={item.id} className='border-t border-border/80'>
                   <td className='px-5 py-4'>
                     <div className='flex items-center gap-4'>
@@ -310,13 +349,11 @@ function SelectField({
   value,
   onChange,
   options,
-  labels,
 }: {
   label: string;
   value: string;
   onChange: (next: string) => void;
-  options: string[];
-  labels?: Record<string, string>;
+  options: CatalogOption[];
 }) {
   return (
     <div className='space-y-2'>
@@ -326,11 +363,39 @@ function SelectField({
         onChange={(event) => onChange(event.target.value)}
         className='w-full rounded-2xl border border-border bg-white px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100'>
         {options.map((option) => (
-          <option key={option} value={option} className='capitalize'>
-            {labels?.[option] || option.charAt(0).toUpperCase() + option.slice(1)}
+          <option key={option.id} value={option.id} className='capitalize'>
+            {option.label}
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+function NumberField({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (next: string) => void;
+}) {
+  return (
+    <div className='space-y-2'>
+      <label className='text-sm font-medium text-slate-700'>{label}</label>
+      <Input
+        type='number'
+        inputMode='decimal'
+        min='0'
+        step='50'
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className='rounded-2xl'
+      />
     </div>
   );
 }
