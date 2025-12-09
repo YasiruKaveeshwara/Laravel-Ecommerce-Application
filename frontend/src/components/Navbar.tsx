@@ -198,7 +198,7 @@ export function Navbar() {
                         <span>{item.label}</span>
                         <div className='flex items-center gap-2'>
                           {item.href === "/cart" && cartCount > 0 && (
-                            <span className='rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold text-white data-[active=false]:bg-slate-100 data-[active=false]:text-slate-900'>
+                            <span className='rounded-full bg-sky-600 px-2 py-0.5 text-xs font-semibold text-white data-[active=false]:bg-sky-100 data-[active=false]:text-sky-700'>
                               {cartCount}
                             </span>
                           )}
@@ -216,7 +216,7 @@ export function Navbar() {
                       <span>Cart quick view</span>
                       <span className='inline-flex items-center gap-2'>
                         <ShoppingCart className='h-4 w-4' />
-                        <span className='rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-900'>
+                        <span className='rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700'>
                           {cartCount}
                         </span>
                       </span>
@@ -282,7 +282,7 @@ export function Navbar() {
                 className={navClasses}>
                 <span>{item.label}</span>
                 {item.href === "/cart" && cartCount > 0 && (
-                  <span className='ml-2 rounded-full  bg-slate-900/10 px-2 py-0.5 text-xs font-semibold text-slate-900'>
+                  <span className='ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700'>
                     {cartCount}
                   </span>
                 )}
@@ -308,7 +308,7 @@ export function Navbar() {
               <ShoppingCart className='h-5 w-5' />
               <span className='sr-only'>Cart</span>
               {cartCount > 0 && (
-                <span className='absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-slate-900 px-1 text-[10px] font-semibold text-white'>
+                <span className='absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-sky-600 px-1 text-[10px] font-semibold text-white'>
                   {cartCount}
                 </span>
               )}

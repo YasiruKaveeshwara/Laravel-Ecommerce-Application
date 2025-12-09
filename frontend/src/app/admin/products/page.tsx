@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { api } from "@/lib/api";
+import { normalizePaginatedResponse } from "@/lib/pagination";
 import type { Product } from "@/types/product";
+import type { PaginatedResponse, PaginationMeta } from "@/types/pagination";
 import { useAuth } from "@/store/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,6 +21,8 @@ const DATE_FILTERS = [
   { id: "90", label: "Last 90 days", days: 90 },
 ];
 
+const PER_PAGE = 20;
+
 export default function AdminProducts() {
   const [items, setItems] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
@@ -26,20 +30,42 @@ export default function AdminProducts() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const fetchMe = useAuth((s) => s.fetchMe);
   const router = useRouter();
 
+  const loadProducts = useCallback(async (targetPage = 1) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      const response: PaginatedResponse<Product> | Record<string, unknown> = await api("/admin/products", {
+        authToken: token,
+        query: {
+          page: targetPage,
+          per_page: PER_PAGE,
+        },
+      });
+      const normalized = normalizePaginatedResponse<Product>(response);
+      setItems(normalized.items);
+      setMeta(normalized.meta);
+    } catch (err: any) {
+      const message = err?.message || "Unable to load inventory";
+      setError(message);
+      notifyError("Inventory fetch failed", message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchMe();
-    const token = localStorage.getItem("token");
-    api("/admin/products", { authToken: token })
-      .then((res) => setItems(res.data || []))
-      .catch((error: any) => {
-        const message = error?.message || "Unable to load inventory";
-        notifyError("Inventory fetch failed", message);
-      })
-      .finally(() => setLoading(false));
   }, [fetchMe]);
+
+  useEffect(() => {
+    loadProducts(1);
+  }, [loadProducts]);
 
   const brandOptions = useMemo(() => {
     const unique = Array.from(new Set(items.map((p) => (p.brand || "").trim()).filter(Boolean)));
@@ -116,7 +142,7 @@ export default function AdminProducts() {
       </div>
 
       <div className='grid gap-4 md:grid-cols-3'>
-        <SummaryTile label='Total devices' value={items.length.toString()} hint='Live in catalog' />
+        <SummaryTile label='Total devices' value={(meta?.total ?? items.length).toString()} hint='Live in catalog' />
         <SummaryTile label='Published last 30 days' value={publishedThisMonth.toString()} hint='Recent launches' />
         <SummaryTile
           label='Inventory value'
@@ -153,9 +179,14 @@ export default function AdminProducts() {
           />
         </div>
         <div className='mt-4 text-sm text-muted'>
-          Showing {filteredItems.length} of {items.length} products
+          Showing {filteredItems.length} of {items.length} products on this page · Page {meta?.current_page ?? 1} of{" "}
+          {meta?.last_page ?? 1}
         </div>
       </section>
+
+      {error && (
+        <div className='rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700'>{error}</div>
+      )}
 
       <div className='overflow-hidden rounded-3xl border border-border bg-white shadow-card'>
         <table className='w-full text-left text-sm'>
@@ -234,6 +265,41 @@ export default function AdminProducts() {
             )}
           </tbody>
         </table>
+
+        {meta?.last_page && meta.last_page > 1 && (
+          <div className='flex flex-wrap items-center justify-between gap-3 border-t border-border/80 bg-slate-50/60 px-5 py-4 text-sm text-muted'>
+            <span>
+              Showing {meta.from ?? 0}-{meta.to ?? items.length} of {meta.total ?? items.length} products
+            </span>
+            <div className='flex items-center gap-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                type='button'
+                disabled={(meta.current_page ?? 1) <= 1 || loading}
+                onClick={() => loadProducts(Math.max((meta?.current_page ?? 1) - 1, 1))}>
+                Previous
+              </Button>
+              <span className='text-xs text-slate-500'>
+                Page {meta.current_page ?? 1} of {meta.last_page}
+              </span>
+              <Button
+                variant='outline'
+                size='sm'
+                type='button'
+                disabled={!meta.last_page || (meta.current_page ?? 1) >= meta.last_page || loading}
+                onClick={() =>
+                  loadProducts(
+                    meta?.last_page
+                      ? Math.min((meta?.current_page ?? 1) + 1, meta.last_page)
+                      : (meta?.current_page ?? 1) + 1
+                  )
+                }>
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
