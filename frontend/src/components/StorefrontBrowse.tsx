@@ -10,11 +10,13 @@ import type { StorefrontFilters } from "@/types/storefront";
 const DEFAULT_PRICE_RANGE: [number, number] = [0, 5000];
 const DEFAULT_CATEGORY = "all";
 const DEFAULT_BRAND = "all";
+const DEFAULT_SEARCH = "";
 
 const createDefaultFilters = (): StorefrontFilters => ({
   price: [...DEFAULT_PRICE_RANGE] as [number, number],
   category: DEFAULT_CATEGORY,
   brand: DEFAULT_BRAND,
+  search: DEFAULT_SEARCH,
 });
 
 export function StorefrontBrowse({
@@ -38,12 +40,14 @@ export function StorefrontBrowse({
   const updatePrice = (next: [number, number]) => setDraftFilters((prev) => ({ ...prev, price: next }));
   const updateCategory = (next: string) => setDraftFilters((prev) => ({ ...prev, category: next }));
   const updateBrand = (next: string) => setDraftFilters((prev) => ({ ...prev, brand: next }));
+  const updateSearch = (next: string) => setDraftFilters((prev) => ({ ...prev, search: next }));
 
   const handleApply = () => {
     setAppliedFilters({
       price: [...draftFilters.price] as [number, number],
       category: draftFilters.category,
       brand: draftFilters.brand,
+      search: draftFilters.search,
     });
   };
 
@@ -61,9 +65,11 @@ export function StorefrontBrowse({
             price={draftFilters.price}
             category={draftFilters.category}
             brand={draftFilters.brand}
+            search={draftFilters.search}
             onPriceChange={updatePrice}
             onCategoryChange={updateCategory}
             onBrandChange={updateBrand}
+            onSearchChange={updateSearch}
             onApply={handleApply}
             onReset={handleReset}
             disableApply={!hasChanges}

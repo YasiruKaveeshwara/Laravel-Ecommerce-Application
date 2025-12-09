@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const CATEGORY_OPTIONS = [
   { id: "all", label: "All" },
@@ -26,15 +27,17 @@ const BRAND_OPTIONS = [
 
 const PRICE_MIN = 0;
 const PRICE_MAX = 5000;
-const PRICE_STEP = 100;
+const PRICE_STEP = 50;
 
 type FiltersPanelProps = {
   price: [number, number];
   category: string;
   brand: string;
+  search: string;
   onPriceChange: (next: [number, number]) => void;
   onCategoryChange: (next: string) => void;
   onBrandChange: (next: string) => void;
+  onSearchChange: (next: string) => void;
   onApply: () => void;
   onReset: () => void;
   disableApply?: boolean;
@@ -44,9 +47,11 @@ export function FiltersPanel({
   price,
   category,
   brand,
+  search,
   onPriceChange,
   onCategoryChange,
   onBrandChange,
+  onSearchChange,
   onApply,
   onReset,
   disableApply,
@@ -66,6 +71,19 @@ export function FiltersPanel({
           <SlidersHorizontal className='h-4 w-4' /> Filters
         </div>
         <section className='space-y-4'>
+          <div className='space-y-2'>
+            <label className='text-sm font-medium text-slate-700'>Search by name</label>
+            <div className='relative'>
+              <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted' />
+              <Input
+                value={search}
+                onChange={(event) => onSearchChange(event.target.value)}
+                placeholder='e.g. Galaxy Ultra'
+                className='pl-9'
+              />
+            </div>
+          </div>
+
           <div>
             <div className='flex items-center justify-between text-sm font-medium'>
               <span>Price Range</span>

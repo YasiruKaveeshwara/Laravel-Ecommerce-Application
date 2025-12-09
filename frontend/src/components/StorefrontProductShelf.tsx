@@ -49,9 +49,10 @@ export function StorefrontProductShelf({
       setError(null);
       try {
         const [minPrice, maxPrice] = filters.price;
+        const keyword = filters.search?.trim() || searchTerm || undefined;
         const response = await api("/products", {
           query: {
-            q: searchTerm || undefined,
+            q: keyword,
             page: targetPage,
             per_page: perPage,
             min_price: minPrice,
