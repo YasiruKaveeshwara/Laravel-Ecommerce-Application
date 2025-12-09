@@ -12,76 +12,74 @@ import { ProductDetail } from "@/components/ProductDetail";
 import { notifyError, notifyInfo } from "@/lib/notify";
 
 export default function AdminProductViewPage() {
-  const router = useRouter();
-  const fetchMe = useAuth((state) => state.fetchMe);
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+	const router = useRouter();
+	const fetchMe = useAuth((state) => state.fetchMe);
+	const [product, setProduct] = useState<Product | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchMe();
-  }, [fetchMe]);
+	useEffect(() => {
+		fetchMe();
+	}, [fetchMe]);
 
-  useEffect(() => {
-    const stored = readProductSelection("admin");
-    if (!stored) {
-      setError("Select a device from inventory to view its details.");
-      setLoading(false);
-      return;
-    }
-    if (stored.snapshot) {
-      setProduct(stored.snapshot);
-    }
-    api("/admin/products/detail", { method: "POST", body: { product_id: stored.id } })
-      .then((res: Product) => setProduct(res))
-      .catch((err: any) => {
-        const message = err?.message || "Unable to load product.";
-        setError(message);
-        notifyError("Product load failed", message);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+	useEffect(() => {
+		const stored = readProductSelection("admin");
+		if (!stored) {
+			setError("Select a device from inventory to view its details.");
+			setLoading(false);
+			return;
+		}
+		if (stored.snapshot) {
+			setProduct(stored.snapshot);
+		}
+		api("/admin/products/detail", { method: "POST", body: { product_id: stored.id } })
+			.then((res: Product) => setProduct(res))
+			.catch((err: any) => {
+				const message = err?.message || "Unable to load product.";
+				setError(message);
+				notifyError("Product load failed", message);
+			})
+			.finally(() => setLoading(false));
+	}, []);
 
-  const goBack = () => {
-    clearProductSelection();
-    router.back();
-  };
+	const goBack = () => {
+		clearProductSelection();
+		router.back();
+	};
 
-  return (
-    <div className='mx-auto max-w-6xl space-y-6 px-4 py-10'>
-      <div className='flex flex-wrap items-center gap-3'>
-        <Button variant='ghost' className='flex items-center gap-2' onClick={goBack}>
-          <ArrowLeft className='h-4 w-4' /> Back
-        </Button>
-        <div className='ml-auto flex gap-3'>
-          <Button
-            variant='outline'
-            className='flex items-center gap-2'
-            disabled={!product}
-            onClick={() => notifyInfo("Edit panel coming soon", "Publishing tools are being finalized.")}>
-            <Pencil className='h-4 w-4' /> Edit device
-          </Button>
-          <Button
-            variant='outline'
-            className='flex items-center gap-2 border-rose-300 text-rose-600'
-            disabled={!product}
-            onClick={() => notifyInfo("Archive workflow in progress", "Expect this shortly.")}>
-            <Trash2 className='h-4 w-4' /> Archive
-          </Button>
-        </div>
-      </div>
+	const heroTitle = product ? product.name : "Device overview";
+	const heroSubtitle = product?.description || "Review imagery, pricing, and catalog metadata.";
 
-      {loading && (
-        <div className='rounded-3xl border border-border bg-white/80 p-10 text-center text-muted shadow-card'>
-          Loading product...
-        </div>
-      )}
+	const handleEdit = () => {
+		notifyInfo("Edit panel coming soon", "Publishing tools are being finalized.");
+	};
 
-      {!loading && error && (
-        <div className='rounded-3xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-700'>{error}</div>
-      )}
+	const handleArchive = () => {
+		notifyInfo("Archive workflow in progress", "Expect this shortly.");
+	};
 
-      {product && <ProductDetail product={product} context='admin' />}
-    </div>
-  );
+	return (
+		<div className='space-y-6'>
+			<div className='flex flex-wrap items-start gap-4'>
+				<div>
+					<p className='text-sm font-semibold uppercase tracking-[0.3em] text-slate-500'>Product detail</p>
+					<h1 className='text-3xl font-semibold text-slate-900'>{heroTitle}</h1>
+					<p className='text-sm text-muted'>{heroSubtitle}</p>
+				</div>
+				<div className='ml-auto flex flex-wrap items-center gap-3'>
+					<Button variant='ghost' className='rounded-2xl border border-border px-4' type='button' onClick={goBack}>
+						<ArrowLeft className='h-4 w-4 mr-2' /> Inventory
+					</Button>
+				</div>
+			</div>
+
+			{!loading && error && (
+				<div className='rounded-3xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-700'>{error}</div>
+			)}
+
+			{product && (
+				<ProductDetail product={product} context='admin' onAdminEdit={handleEdit} onAdminDelete={handleArchive} />
+			)}
+		</div>
+	);
 }
