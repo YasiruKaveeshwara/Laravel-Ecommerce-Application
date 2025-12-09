@@ -20,6 +20,7 @@ const STORE_LINKS = [
 
 const ADMIN_LINKS = [
   { href: "/admin", label: "Storefront" },
+  { href: "/admin/orders", label: "Orders" },
   { href: "/admin/products", label: "Inventory" },
   { href: "/admin/products/new", label: "Add Product" },
   { href: "/admin/customers", label: "Customers" },
@@ -185,8 +186,8 @@ export function Navbar() {
                   <User className='h-5 w-5' />
                 </Link>
                 {isAdmin ? (
-                  <Link href='/admin/products' className='hidden md:inline-flex text-sm text-muted hover:text-sky-600'>
-                    Admin Console
+                  <Link href='/admin/orders' className='hidden md:inline-flex text-sm text-muted hover:text-sky-600'>
+                    Orders desk
                   </Link>
                 ) : (
                   <Link href='/orders' className='hidden md:inline-flex text-sm text-muted hover:text-sky-600'>

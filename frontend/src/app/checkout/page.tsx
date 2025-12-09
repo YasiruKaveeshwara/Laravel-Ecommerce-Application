@@ -7,6 +7,7 @@ import { useCart } from "@/store/cart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { dismissToast, notifyError, notifyLoading, notifySuccess } from "@/lib/notify";
+import { api } from "@/lib/api";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -31,15 +32,46 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isPlacingOrder) return;
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const toValue = (key: string) => (formData.get(key) ?? "").toString().trim();
+    const roundCurrency = (value: number) => Number(value.toFixed(2));
+
+    const payload = {
+      first_name: toValue("firstName"),
+      last_name: toValue("lastName"),
+      email: toValue("email"),
+      phone: toValue("phone"),
+      address1: toValue("address1"),
+      address2: toValue("address2"),
+      city: toValue("city"),
+      state: toValue("state"),
+      postal_code: toValue("zip"),
+      country: toValue("country"),
+      subtotal: roundCurrency(subtotal),
+      tax_total: roundCurrency(taxes),
+      shipping_total: roundCurrency(shipping),
+      grand_total: roundCurrency(total),
+      items: items.map((item) => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+        unit_price: roundCurrency(item.unitPrice),
+      })),
+    };
+
     setIsPlacingOrder(true);
     const toastId = notifyLoading("Processing payment…", "Hold tight while we confirm your order.");
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await api("/orders", { method: "POST", body: payload });
       clearCart();
+      form.reset();
       notifySuccess("Order placed!", "We just sent a confirmation email.");
       router.push("/?order=success");
-    } catch (error) {
-      notifyError("Payment failed", "Please try again.");
+    } catch (error: any) {
+      notifyError("Payment failed", error?.message || "Please try again.");
     } finally {
       dismissToast(toastId);
       setIsPlacingOrder(false);
