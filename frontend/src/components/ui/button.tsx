@@ -11,7 +11,7 @@ export interface ButtonProps
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", ...props }, ref) => {
     const base =
-      "inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-colors";
+      "inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-colors cursor-pointer";
     const size = "h-10 px-4";
 
     const variants: Record<Variant, string> = {

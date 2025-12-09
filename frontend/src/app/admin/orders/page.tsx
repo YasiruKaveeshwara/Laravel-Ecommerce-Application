@@ -32,33 +32,36 @@ export default function AdminOrdersPage() {
     return () => clearTimeout(id);
   }, [search]);
 
-  const loadOrders = useCallback(async (queryOverride?: string) => {
-    if (!user || user.role !== "administrator") {
-      setOrders([]);
-      setMeta(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const searchTerm = (queryOverride ?? activeSearch)?.trim() || undefined;
-      const response: PaginatedResponse<Order> = await api("/admin/orders", {
-        query: {
-          per_page: 50,
-          q: searchTerm,
-        },
-      });
-      setOrders(response?.data || []);
-      setMeta(response?.meta || null);
-    } catch (err: any) {
-      const message = err?.message || "Unable to load admin orders.";
-      setError(message);
-      notifyError("Admin orders unavailable", message);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, activeSearch]);
+  const loadOrders = useCallback(
+    async (queryOverride?: string) => {
+      if (!user || user.role !== "administrator") {
+        setOrders([]);
+        setMeta(null);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const searchTerm = (queryOverride ?? activeSearch)?.trim() || undefined;
+        const response: PaginatedResponse<Order> = await api("/admin/orders", {
+          query: {
+            per_page: 50,
+            q: searchTerm,
+          },
+        });
+        setOrders(response?.data || []);
+        setMeta(response?.meta || null);
+      } catch (err: any) {
+        const message = err?.message || "Unable to load admin orders.";
+        setError(message);
+        notifyError("Admin orders unavailable", message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user, activeSearch]
+  );
 
   useEffect(() => {
     if (!initialized) {
@@ -126,11 +129,7 @@ export default function AdminOrdersPage() {
             disabled={loading}>
             Reset filters
           </Button>
-          <Button
-            className='rounded-2xl px-5'
-            type='button'
-            onClick={() => loadOrders()}
-            disabled={loading}>
+          <Button className='rounded-2xl px-5' type='button' onClick={() => loadOrders()} disabled={loading}>
             <RefreshCcw className='mr-2 h-4 w-4' /> Refresh list
           </Button>
         </div>
@@ -182,9 +181,9 @@ export default function AdminOrdersPage() {
           <div className='mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
             {error}
 
-        <p className='mt-4 text-sm text-muted'>
-          Showing {orders.length} of {meta?.total ?? orders.length} orders
-        </p>
+            <p className='mt-4 text-sm text-muted'>
+              Showing {orders.length} of {meta?.total ?? orders.length} orders
+            </p>
           </div>
         )}
 
