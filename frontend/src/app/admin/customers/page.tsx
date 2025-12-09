@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { notifyError, notifyInfo } from "@/lib/notify";
 
 type AdminUser = {
-  id: number;
+  id: string;
   first_name: string;
   last_name: string;
   full_name?: string;
@@ -198,7 +198,6 @@ export default function AdminCustomers() {
                         <p className='font-semibold text-slate-900'>
                           {user.full_name || `${user.first_name} ${user.last_name}`}
                         </p>
-                        <p className='text-xs text-muted'>ID #{user.id}</p>
                       </div>
                     </div>
                   </td>

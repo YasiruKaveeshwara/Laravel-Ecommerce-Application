@@ -194,7 +194,6 @@ export default function AdminProducts() {
                       />
                       <div>
                         <p className='font-semibold text-slate-900'>{item.name}</p>
-                        <p className='text-xs text-muted'>SKU #{item.id}</p>
                       </div>
                     </div>
                   </td>

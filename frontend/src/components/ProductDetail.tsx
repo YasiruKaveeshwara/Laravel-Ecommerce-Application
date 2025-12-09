@@ -76,7 +76,6 @@ export function ProductDetail({ product, context = "storefront" }: ProductDetail
         <div className='rounded-3xl border border-border bg-white/80 p-6 shadow-card'>
           <dl className='grid gap-4 text-sm text-slate-600 sm:grid-cols-2'>
             <DetailItem label='Category' value={product.category || "Unassigned"} />
-            <DetailItem label='SKU' value={`#${product.id}`} />
             <DetailItem label='Added' value={formatDate(product.created_at)} />
             <DetailItem label='Status' value='In stock' />
           </dl>

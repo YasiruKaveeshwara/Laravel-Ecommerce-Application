@@ -30,13 +30,11 @@ const PRICE_MAX = 500;
 
 export function FiltersPanel() {
   const [price, setPrice] = useState<[number, number]>([50, 350]);
-  const [sort, setSort] = useState("all");
   const [category, setCategory] = useState("all");
   const [brand, setBrand] = useState("all");
 
   const resetFilters = () => {
     setPrice([50, 350]);
-    setSort("all");
     setCategory("all");
     setBrand("all");
   };

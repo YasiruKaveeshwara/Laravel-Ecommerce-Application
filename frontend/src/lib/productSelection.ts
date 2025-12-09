@@ -3,7 +3,7 @@ import type { Product } from "@/types/product";
 export type ProductSelectionScope = "storefront" | "admin";
 
 type StoredSelection = {
-  id: number;
+  id: string;
   scope: ProductSelectionScope;
   snapshot?: Product;
   updated_at: number;
@@ -17,10 +17,11 @@ function isBrowser() {
 
 export function rememberProductSelection(product: Product, scope: ProductSelectionScope) {
   if (!isBrowser()) return;
+  const normalizedId = String(product.id);
   const payload: StoredSelection = {
-    id: Number(product.id),
+    id: normalizedId,
     scope,
-    snapshot: product,
+    snapshot: { ...product, id: normalizedId },
     updated_at: Date.now(),
   };
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -31,11 +32,11 @@ export function readProductSelection(scope: ProductSelectionScope): StoredSelect
   const raw = sessionStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as StoredSelection;
+    const parsed = JSON.parse(raw) as StoredSelection & { id: string | number };
     if (parsed.scope !== scope) {
       return null;
     }
-    return parsed;
+    return { ...parsed, id: typeof parsed.id === "string" ? parsed.id : String(parsed.id) };
   } catch {
     return null;
   }

@@ -13,7 +13,7 @@ class UserService
   public function list(?string $q = null, int $perPage = 20)
   {
     return $this->searchableQuery(User::query(), $q)
-      ->latest('id')
+      ->latest()
       ->paginate($perPage);
   }
 

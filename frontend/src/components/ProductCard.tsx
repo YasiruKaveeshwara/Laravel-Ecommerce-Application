@@ -85,7 +85,10 @@ export function ProductCard({ p, size = "default", detailScope = "storefront" }:
 
 function deriveProductMeta(product: Product) {
   const numericPrice = Number(product.price || 0);
-  const fallbackPrice = 29 + (product.id % 5) * 7;
+  const idSeed = Array.from(String(product.id || ""))
+    .map((char) => char.charCodeAt(0))
+    .reduce((sum, code) => sum + code, 0);
+  const fallbackPrice = 29 + (idSeed % 5) * 7;
   const price = (numericPrice || fallbackPrice).toFixed(2);
   return { price };
 }

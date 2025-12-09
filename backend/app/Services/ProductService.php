@@ -15,18 +15,18 @@ class ProductService
   public function listPublic(?string $q = null, int $perPage = 12)
   {
     return $this->searchableQuery(Product::query(), $q)
-      ->latest('id')
+      ->latest()
       ->paginate($perPage);
   }
 
   /** Public show */
-  public function showPublic(int $id): Product
+  public function showPublic(string $id): Product
   {
     return Product::findOrFail($id);
   }
 
   /** Admin show */
-  public function showAdmin(int $id): Product
+  public function showAdmin(string $id): Product
   {
     return Product::findOrFail($id);
   }
@@ -35,7 +35,7 @@ class ProductService
   public function listAdmin(?string $q = null, int $perPage = 20)
   {
     return $this->searchableQuery(Product::query(), $q)
-      ->latest('id')
+      ->latest()
       ->paginate($perPage);
   }
 

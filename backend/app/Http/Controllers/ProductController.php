@@ -38,10 +38,10 @@ class ProductController extends Controller
   public function detail(Request $request)
   {
     $data = $request->validate([
-      'product_id' => ['required', 'integer', 'exists:products,id'],
+      'product_id' => ['required', 'uuid', 'exists:products,id'],
     ]);
 
-    return $this->products->showPublic((int) $data['product_id']);
+    return $this->products->showPublic($data['product_id']);
   }
 
   /**
@@ -72,10 +72,10 @@ class ProductController extends Controller
   public function adminDetail(Request $request)
   {
     $data = $request->validate([
-      'product_id' => ['required', 'integer', 'exists:products,id'],
+      'product_id' => ['required', 'uuid', 'exists:products,id'],
     ]);
 
-    return $this->products->showAdmin((int) $data['product_id']);
+    return $this->products->showAdmin($data['product_id']);
   }
 
   /**
