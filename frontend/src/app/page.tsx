@@ -1,16 +1,15 @@
 // src/app/page.tsx
-import { FiltersPanel } from "@/components/FiltersPanel";
 import { HeroBanner } from "@/components/HeroBanner";
 import { api } from "@/lib/api";
 import { normalizePaginatedResponse } from "@/lib/pagination";
-import { StorefrontProductShelf } from "@/components/StorefrontProductShelf";
+import { StorefrontBrowse } from "@/components/StorefrontBrowse";
 import type { Product } from "@/types/product";
 import type { PaginatedResponse, PaginationMeta } from "@/types/pagination";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const PRODUCTS_PER_PAGE = 12;
+const PRODUCTS_PER_PAGE = 20;
 
 type SearchParams = {
   q?: string;
@@ -59,30 +58,7 @@ export default async function Home({
       <HeroBanner />
 
       <section className='mx-auto py-10'>
-        {/* Responsive two-column: filters (left) + content (right) */}
-        <div className='grid grid-cols-1 gap-8 lg:grid-cols-12'>
-          {/* Filters: left rail (sticky on large screens) */}
-          <aside className='lg:col-span-3'>
-            <div className='lg:sticky lg:top-20'>
-              <FiltersPanel />
-            </div>
-          </aside>
-
-          {/* Products: right content */}
-          <div className='space-y-4 lg:col-span-9'>
-            <header className='space-y-1'>
-              <h2 className='text-2xl font-semibold'>Trending smartphones</h2>
-              <p className='text-sm text-muted'>Curated 5G flagships, foldables, and budget wins refreshed daily.</p>
-            </header>
-
-            <StorefrontProductShelf
-              initialItems={items}
-              initialMeta={meta}
-              perPage={PRODUCTS_PER_PAGE}
-              searchTerm={q}
-            />
-          </div>
-        </div>
+        <StorefrontBrowse initialItems={items} initialMeta={meta} perPage={PRODUCTS_PER_PAGE} searchTerm={q} />
       </section>
     </div>
   );

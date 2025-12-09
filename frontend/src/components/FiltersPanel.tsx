@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
 
 const CATEGORY_OPTIONS = [
   { id: "all", label: "All" },
@@ -26,19 +25,32 @@ const BRAND_OPTIONS = [
 ];
 
 const PRICE_MIN = 0;
-const PRICE_MAX = 500;
+const PRICE_MAX = 5000;
+const PRICE_STEP = 100;
 
-export function FiltersPanel() {
-  const [price, setPrice] = useState<[number, number]>([50, 350]);
-  const [category, setCategory] = useState("all");
-  const [brand, setBrand] = useState("all");
+type FiltersPanelProps = {
+  price: [number, number];
+  category: string;
+  brand: string;
+  onPriceChange: (next: [number, number]) => void;
+  onCategoryChange: (next: string) => void;
+  onBrandChange: (next: string) => void;
+  onApply: () => void;
+  onReset: () => void;
+  disableApply?: boolean;
+};
 
-  const resetFilters = () => {
-    setPrice([50, 350]);
-    setCategory("all");
-    setBrand("all");
-  };
-
+export function FiltersPanel({
+  price,
+  category,
+  brand,
+  onPriceChange,
+  onCategoryChange,
+  onBrandChange,
+  onApply,
+  onReset,
+  disableApply,
+}: FiltersPanelProps) {
   const formattedPrice = useMemo(
     () => ({
       min: `$${price[0].toFixed(0)}`,
@@ -61,23 +73,18 @@ export function FiltersPanel() {
                 {formattedPrice.min} - {formattedPrice.max}
               </span>
             </div>
-            <DualRangeSlider value={price} onChange={setPrice} />
+            <DualRangeSlider value={price} onChange={onPriceChange} />
           </div>
 
-          
-          <FilterGroup title='Category' options={CATEGORY_OPTIONS} value={category} onChange={setCategory} />
-          <FilterGroup title='Brand' options={BRAND_OPTIONS} value={brand} onChange={setBrand} />
-
-          
+          <FilterGroup title='Category' options={CATEGORY_OPTIONS} value={category} onChange={onCategoryChange} />
+          <FilterGroup title='Brand' options={BRAND_OPTIONS} value={brand} onChange={onBrandChange} />
         </section>
 
         <div className='mt-6 flex gap-3'>
-          <Button className='flex-1'>Apply</Button>
-          <Button
-            type='button'
-            onClick={resetFilters}
-            variant='ghost'
-            className='flex-1 text-sm text-muted hover:text-text'>
+          <Button type='button' className='flex-1' onClick={onApply} disabled={disableApply}>
+            Apply
+          </Button>
+          <Button type='button' onClick={onReset} variant='ghost' className='flex-1 text-sm text-muted hover:text-text'>
             Reset
           </Button>
         </div>
@@ -138,12 +145,16 @@ function DualRangeSlider({ value, onChange }: { value: [number, number]; onChang
 
   const updateMin = (next: number) => {
     if (next >= max) return;
-    onChange([Math.max(PRICE_MIN, next), max]);
+    const clamped = Math.max(PRICE_MIN, Math.min(next, PRICE_MAX));
+    const stepped = Math.min(max - PRICE_STEP, Math.round(clamped / PRICE_STEP) * PRICE_STEP);
+    onChange([Math.max(PRICE_MIN, stepped), max]);
   };
 
   const updateMax = (next: number) => {
     if (next <= min) return;
-    onChange([min, Math.min(PRICE_MAX, next)]);
+    const clamped = Math.max(PRICE_MIN, Math.min(next, PRICE_MAX));
+    const stepped = Math.max(min + PRICE_STEP, Math.round(clamped / PRICE_STEP) * PRICE_STEP);
+    onChange([min, Math.min(PRICE_MAX, stepped)]);
   };
 
   const trackStyle = {
@@ -160,6 +171,7 @@ function DualRangeSlider({ value, onChange }: { value: [number, number]; onChang
         type='range'
         min={PRICE_MIN}
         max={PRICE_MAX}
+        step={PRICE_STEP}
         value={min}
         onChange={(event) => updateMin(Number(event.target.value))}
       />
@@ -168,6 +180,7 @@ function DualRangeSlider({ value, onChange }: { value: [number, number]; onChang
         type='range'
         min={PRICE_MIN}
         max={PRICE_MAX}
+        step={PRICE_STEP}
         value={max}
         onChange={(event) => updateMax(Number(event.target.value))}
       />

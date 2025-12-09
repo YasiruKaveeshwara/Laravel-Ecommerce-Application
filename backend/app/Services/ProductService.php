@@ -11,10 +11,20 @@ class ProductService
 {
   public function __construct(private ImageService $images) {}
 
-  /** Public/customer list with optional name search */
-  public function listPublic(?string $q = null, int $perPage = 12)
-  {
+  /** Public/customer list with optional name search and filters */
+  public function listPublic(
+    ?string $q = null,
+    int $perPage = 20,
+    ?float $minPrice = null,
+    ?float $maxPrice = null,
+    ?string $category = null,
+    ?string $brand = null
+  ) {
     return $this->searchableQuery(Product::query(), $q)
+      ->when($minPrice !== null, fn($query) => $query->where('price', '>=', $minPrice))
+      ->when($maxPrice !== null, fn($query) => $query->where('price', '<=', $maxPrice))
+      ->when($category, fn($query) => $query->where('category', $category))
+      ->when($brand, fn($query) => $query->whereRaw('LOWER(brand) = ?', [mb_strtolower($brand)]))
       ->latest()
       ->paginate($perPage);
   }

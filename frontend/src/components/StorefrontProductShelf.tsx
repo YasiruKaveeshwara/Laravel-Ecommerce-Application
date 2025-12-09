@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductGallery } from "@/components/ProductGallery";
@@ -8,12 +8,14 @@ import { api } from "@/lib/api";
 import { normalizePaginatedResponse } from "@/lib/pagination";
 import type { Product } from "@/types/product";
 import type { PaginationMeta } from "@/types/pagination";
+import type { StorefrontFilters } from "@/types/storefront";
 
 interface StorefrontProductShelfProps {
   initialItems: Product[];
   initialMeta: PaginationMeta | null;
   perPage: number;
   searchTerm?: string | null;
+  filters: StorefrontFilters;
 }
 
 export function StorefrontProductShelf({
@@ -21,6 +23,7 @@ export function StorefrontProductShelf({
   initialMeta,
   perPage,
   searchTerm,
+  filters,
 }: StorefrontProductShelfProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [items, setItems] = useState<Product[]>(initialItems);
@@ -33,21 +36,28 @@ export function StorefrontProductShelf({
   const lastPage = meta?.last_page ?? currentPage;
   const canGoPrev = currentPage > 1;
   const canGoNext = lastPage ? currentPage < lastPage : false;
+  const filterSignature = JSON.stringify(filters);
+  const initialFilterSignature = useRef(filterSignature);
 
   const fetchPage = useCallback(
-    async (targetPage: number) => {
-      if (targetPage < 1 || targetPage === currentPage || (lastPage && targetPage > lastPage)) {
+    async (targetPage: number, options?: { force?: boolean }) => {
+      if (!options?.force && (targetPage < 1 || targetPage === currentPage || (lastPage && targetPage > lastPage))) {
         return;
       }
 
       setLoading(true);
       setError(null);
       try {
+        const [minPrice, maxPrice] = filters.price;
         const response = await api("/products", {
           query: {
             q: searchTerm || undefined,
             page: targetPage,
             per_page: perPage,
+            min_price: minPrice,
+            max_price: maxPrice,
+            category: filters.category !== "all" ? filters.category : undefined,
+            brand: filters.brand !== "all" ? filters.brand : undefined,
           },
         });
         const normalized = normalizePaginatedResponse<Product>(response);
@@ -66,8 +76,16 @@ export function StorefrontProductShelf({
         setLoading(false);
       }
     },
-    [currentPage, lastPage, perPage, searchTerm]
+    [currentPage, lastPage, perPage, searchTerm, filters]
   );
+
+  useEffect(() => {
+    if (filterSignature === initialFilterSignature.current) {
+      return;
+    }
+    initialFilterSignature.current = filterSignature;
+    fetchPage(1, { force: true });
+  }, [filterSignature, fetchPage]);
 
   const rangeLabel = useMemo(() => {
     if (!meta) {

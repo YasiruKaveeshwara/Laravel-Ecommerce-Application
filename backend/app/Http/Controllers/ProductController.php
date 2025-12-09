@@ -17,10 +17,23 @@ class ProductController extends Controller
   public function index(Request $request)
   {
     $q        = $request->query('q');
-    $perPage  = (int) ($request->query('per_page', 12));
-    $perPage  = $perPage > 0 && $perPage <= 100 ? $perPage : 12;
+    $perPage  = (int) ($request->query('per_page', 20));
+    $perPage  = $perPage > 0 && $perPage <= 100 ? $perPage : 20;
+    $minPrice = $request->query('min_price');
+    $maxPrice = $request->query('max_price');
+    $category = $request->query('category');
+    $brand    = $request->query('brand');
 
-    return $this->products->listPublic($q, $perPage);
+    $minPrice = is_numeric($minPrice) ? (float) $minPrice : null;
+    $maxPrice = is_numeric($maxPrice) ? (float) $maxPrice : null;
+    $category = $category && $category !== 'all' ? $category : null;
+    $brand    = $brand && $brand !== 'all' ? $brand : null;
+
+    if ($minPrice !== null && $maxPrice !== null && $minPrice > $maxPrice) {
+      [$minPrice, $maxPrice] = [$maxPrice, $minPrice];
+    }
+
+    return $this->products->listPublic($q, $perPage, $minPrice, $maxPrice, $category, $brand);
   }
 
   /**
