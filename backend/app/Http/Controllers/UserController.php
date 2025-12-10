@@ -13,15 +13,23 @@ class UserController extends Controller
 
   /**
    * GET /api/users  (auth:sanctum + role:administrator)
-   * Query params: q, per_page
+   * Query params: q, per_page, page, role
    */
   public function index(Request $request)
   {
-    $q        = $request->query('q');
-    $perPage  = (int) ($request->query('per_page', 20));
-    $perPage  = $perPage > 0 && $perPage <= 100 ? $perPage : 20;
+    $validated = $request->validate([
+      'q'        => ['nullable', 'string'],
+      'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+      'page'     => ['nullable', 'integer', 'min:1'],
+      'role'     => ['nullable', Rule::in([User::ROLE_ADMIN, User::ROLE_CUSTOMER])],
+    ]);
 
-    return $this->users->list($q, $perPage);
+    $q = $validated['q'] ?? null;
+    $perPage = (int) ($validated['per_page'] ?? 20);
+    $perPage = $perPage > 0 && $perPage <= 100 ? $perPage : 20;
+    $role = $validated['role'] ?? null;
+
+    return $this->users->list($q, $perPage, $role);
   }
 
   /**

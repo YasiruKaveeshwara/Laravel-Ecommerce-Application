@@ -10,9 +10,15 @@ use Illuminate\Support\Facades\DB;
 class UserService
 {
   /** Admin list */
-  public function list(?string $q = null, int $perPage = 20)
+  public function list(?string $q = null, int $perPage = 20, ?string $role = null)
   {
-    return $this->searchableQuery(User::query(), $q)
+    $query = $this->searchableQuery(User::query(), $q);
+
+    if ($role) {
+      $query->where('role', $role);
+    }
+
+    return $query
       ->latest()
       ->paginate($perPage);
   }
@@ -58,7 +64,8 @@ class UserService
       $inner
         ->whereRaw('LOWER(email) LIKE ?', [$needle])
         ->orWhereRaw('LOWER(first_name) LIKE ?', [$needle])
-        ->orWhereRaw('LOWER(last_name) LIKE ?', [$needle]);
+        ->orWhereRaw('LOWER(last_name) LIKE ?', [$needle])
+        ->orWhereRaw("LOWER(CONCAT_WS(' ', first_name, last_name)) LIKE ?", [$needle]);
     });
   }
 }

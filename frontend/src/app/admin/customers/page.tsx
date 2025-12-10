@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/store/auth";
@@ -37,54 +37,71 @@ const ROLE_LABEL: Record<AdminUser["role"], string> = {
 	customer: "Customer",
 };
 
+const relativeTimeFormatter = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+const PER_PAGE = 100;
+
+type AdminFilters = {
+	search: string;
+	role: "all" | AdminUser["role"];
+};
+
+const createDefaultFilters = (): AdminFilters => ({ search: "", role: "all" });
+
 export default function AdminCustomers() {
 	const [users, setUsers] = useState<AdminUser[]>([]);
 	const [meta, setMeta] = useState<PaginationMeta | null>(null);
 	const [loading, setLoading] = useState(true);
-	const [search, setSearch] = useState("");
-	const [roleFilter, setRoleFilter] = useState<"all" | AdminUser["role"]>("all");
+	const [error, setError] = useState<string | null>(null);
+	const [filters, setFilters] = useState<AdminFilters>(() => createDefaultFilters());
+	const [appliedFilters, setAppliedFilters] = useState<AdminFilters>(() => createDefaultFilters());
+	const [currentPage, setCurrentPage] = useState(1);
+	const appliedFiltersRef = useRef(appliedFilters);
+	const pageRef = useRef(1);
 	const fetchMe = useAuth((state) => state.fetchMe);
+
+	useEffect(() => {
+		appliedFiltersRef.current = appliedFilters;
+	}, [appliedFilters]);
 
 	useEffect(() => {
 		fetchMe();
 	}, [fetchMe]);
 
-	const loadCustomers = useCallback(() => {
+	const loadCustomers = useCallback(async (overrideFilters?: AdminFilters, overridePage?: number) => {
 		setLoading(true);
-		const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-		api("/users", { authToken: token, query: { per_page: 100 } })
-			.then((res: UsersResponse) => {
-				setUsers(res?.data || []);
-				setMeta(res?.meta || null);
-			})
-			.catch((error: unknown) => {
-				handleError(error, { title: "Customer fetch failed", fallbackMessage: "Unable to load customers." });
-			})
-			.finally(() => setLoading(false));
+		setError(null);
+		try {
+			const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+			const activeFilters = overrideFilters ?? appliedFiltersRef.current;
+			const pageToFetch = overridePage ?? pageRef.current;
+			const response: UsersResponse = await api("/users", {
+				authToken: token,
+				query: {
+					per_page: PER_PAGE,
+					q: activeFilters.search.trim() || undefined,
+					role: activeFilters.role === "all" ? undefined : activeFilters.role,
+					page: pageToFetch,
+				},
+			});
+			setUsers(response?.data || []);
+			setMeta(response?.meta || null);
+			const resolvedPage = response?.meta?.current_page ?? pageToFetch;
+			pageRef.current = resolvedPage;
+			setCurrentPage(resolvedPage);
+		} catch (err: unknown) {
+			const message = handleError(err, {
+				title: "Customer fetch failed",
+				fallbackMessage: "Unable to load customers.",
+			});
+			setError(message);
+		} finally {
+			setLoading(false);
+		}
 	}, []);
 
 	useEffect(() => {
 		loadCustomers();
 	}, [loadCustomers]);
-
-	const filteredUsers = useMemo(() => {
-		const term = search.trim().toLowerCase();
-		return users
-			.filter((user) => {
-				const composite = (user.full_name || `${user.first_name || ""} ${user.last_name || ""}`).trim().toLowerCase();
-				const emailMatch = user.email?.toLowerCase().includes(term);
-				const matchesSearch = term ? composite.includes(term) || emailMatch : true;
-				const matchesRole = roleFilter === "all" ? true : user.role === roleFilter;
-				return matchesSearch && matchesRole;
-			})
-			.sort((a, b) => {
-				const dateA = a.created_at ? Date.parse(a.created_at) : 0;
-				const dateB = b.created_at ? Date.parse(b.created_at) : 0;
-				return dateB - dateA;
-			});
-	}, [users, search, roleFilter]);
-
-	const emptyStateLoading = loading && filteredUsers.length === 0;
 
 	const stats = useMemo(() => {
 		const totalCustomers = users.filter((user) => user.role === "customer").length;
@@ -103,26 +120,57 @@ export default function AdminCustomers() {
 		return { totalCustomers, adminCount, newThisMonth };
 	}, [users]);
 
-	const totalRecords = meta?.total ?? users.length;
+	const totalRecords = meta?.total ?? 0;
+	const pageSize = meta?.per_page ?? PER_PAGE;
+	const totalPages = meta?.last_page ?? 1;
+	const filtersDirty = useMemo(() => {
+		return filters.search !== appliedFilters.search || filters.role !== appliedFilters.role;
+	}, [filters, appliedFilters]);
+
+	const hasRecords = totalRecords > 0;
+	const rangeStart = hasRecords ? (currentPage - 1) * pageSize + 1 : 0;
+	const rawRangeEnd = hasRecords ? rangeStart + users.length - 1 : 0;
+	const rangeEnd = hasRecords ? Math.max(rangeStart, rawRangeEnd) : 0;
+	const paginationCopy = hasRecords
+		? `Showing ${rangeStart}-${rangeEnd} of ${totalRecords} accounts`
+		: "Showing 0 accounts";
+	const canGoPrev = currentPage > 1;
+	const canGoNext = currentPage < totalPages;
+
+	const handleApplyFilters = () => {
+		const next = { ...filters };
+		setAppliedFilters(next);
+		loadCustomers(next, 1);
+	};
 
 	const resetFilters = () => {
-		setSearch("");
-		setRoleFilter("all");
+		const next = createDefaultFilters();
+		setFilters(next);
+		setAppliedFilters(next);
+		loadCustomers(next, 1);
 	};
+
+	const goToPage = (target: number) => {
+		if (loading) return;
+		const normalized = Math.min(Math.max(target, 1), totalPages || 1);
+		if (normalized === currentPage) {
+			return;
+		}
+		loadCustomers(undefined, normalized);
+	};
+
+	const emptyStateLoading = loading && users.length === 0;
 
 	return (
 		<div className='space-y-6'>
 			<div className='flex flex-wrap items-start gap-4'>
 				<div>
-					<p className='text-sm font-semibold uppercase tracking-[0.3em] text-slate-500'>Customers</p>
-					<h1 className='text-3xl font-semibold text-slate-900'>Customer intelligence</h1>
+					<p className='text-sm font-semibold uppercase tracking-[0.3em] text-slate-500'>Users</p>
+					<h1 className='text-3xl font-semibold text-slate-900'>User intelligence</h1>
 					<p className='text-sm text-muted'>Search accounts, view segments, and keep tabs on growth.</p>
 				</div>
 				<div className='ml-auto flex items-center gap-3'>
-					<Button variant='ghost' className='rounded-2xl border border-border px-4' onClick={resetFilters}>
-						Reset filters
-					</Button>
-					<Button className='rounded-2xl px-5' onClick={loadCustomers}>
+					<Button variant='ghost' className='rounded-2xl border border-border px-4' onClick={() => loadCustomers()}>
 						Refresh list
 					</Button>
 				</div>
@@ -141,8 +189,8 @@ export default function AdminCustomers() {
 						<div className='relative'>
 							<Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted' />
 							<Input
-								value={search}
-								onChange={(event) => setSearch(event.target.value)}
+								value={filters.search}
+								onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
 								placeholder='Search name or email'
 								className='pl-9'
 							/>
@@ -151,8 +199,10 @@ export default function AdminCustomers() {
 					<div className='space-y-2'>
 						<label className='text-sm font-medium text-slate-700'>Role</label>
 						<select
-							value={roleFilter}
-							onChange={(event) => setRoleFilter(event.target.value as "all" | AdminUser["role"])}
+							value={filters.role}
+							onChange={(event) =>
+								setFilters((prev) => ({ ...prev, role: event.target.value as AdminFilters["role"] }))
+							}
 							className='w-full rounded-2xl border border-border bg-white px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100'>
 							<option value='all'>All roles</option>
 							<option value='customer'>Customers</option>
@@ -160,12 +210,24 @@ export default function AdminCustomers() {
 						</select>
 					</div>
 				</div>
-				<div className='mt-4 text-sm text-muted'>
-					Showing {filteredUsers.length} of {totalRecords} accounts
+				<div className='mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted'>
+					<span>{paginationCopy}</span>
+					<div className='flex items-center gap-3'>
+						<Button variant='ghost' className='rounded-2xl border border-border px-4' onClick={resetFilters}>
+							Reset filters
+						</Button>
+						<Button className='rounded-2xl px-6' onClick={handleApplyFilters} disabled={!filtersDirty}>
+							Apply filters
+						</Button>
+					</div>
 				</div>
 			</section>
 
-			<div className='rounded-3xl border border-border bg-white shadow-card'>
+			{error && (
+				<div className='rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700'>{error}</div>
+			)}
+
+			<div className='rounded-3xl border border-border bg-gradient-to-b from-white via-white to-slate-50 shadow-card'>
 				{emptyStateLoading ? (
 					<LoadingScreen
 						message='Loading customer roster...'
@@ -173,70 +235,107 @@ export default function AdminCustomers() {
 						className='border-none bg-transparent shadow-none'
 					/>
 				) : (
-					<div className='overflow-hidden rounded-3xl'>
-						<table className='w-full text-left text-sm'>
-							<thead className='bg-slate-50 text-slate-500'>
-								<tr>
-									<th className='px-5 py-3 font-medium'>Customer</th>
-									<th className='px-5 py-3 font-medium'>Email</th>
-									<th className='px-5 py-3 font-medium'>Role</th>
-									<th className='px-5 py-3 font-medium'>Joined</th>
-									<th className='px-5 py-3 font-medium text-right'>Actions</th>
-								</tr>
-							</thead>
-							<tbody>
-								{loading ? (
+					<>
+						<div className='overflow-x-auto px-2 pb-2'>
+							<table className='w-full border-separate border-spacing-y-3 text-sm text-slate-600'>
+								<thead className='text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500'>
 									<tr>
-										<td colSpan={5} className='px-5 py-8 text-center text-muted'>
-											Loading customer...
-										</td>
+										<th className='px-5 py-2 text-left'>User</th>
+										<th className='px-5 py-2 text-left'>Role</th>
+										<th className='px-5 py-2 text-left'>Joined</th>
+										<th className='px-5 py-2 text-center'>Actions</th>
 									</tr>
-								) : filteredUsers.length === 0 ? (
-									<tr>
-										<td colSpan={5} className='px-5 py-8 text-center text-muted'>
-											No customers match these filters yet.
-										</td>
-									</tr>
-								) : (
-									filteredUsers.map((user) => (
-										<tr key={user.id} className='border-t border-border/80'>
-											<td className='px-5 py-4'>
-												<div className='flex items-center gap-4'>
-													<div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-base font-semibold text-slate-600'>
-														{getInitials(user)}
-													</div>
-													<div>
-														<p className='font-semibold text-slate-900'>
-															{user.full_name || `${user.first_name} ${user.last_name}`}
-														</p>
-													</div>
-												</div>
-											</td>
-											<td className='px-5 py-4'>
-												<a href={`mailto:${user.email}`} className='text-sky-600 hover:underline'>
-													{user.email}
-												</a>
-											</td>
-											<td className='px-5 py-4'>
-												<RolePill role={user.role} />
-											</td>
-											<td className='px-5 py-4 text-slate-600'>{formatDate(user.created_at)}</td>
-											<td className='px-5 py-4 text-right'>
-												<div className='flex justify-end gap-2'>
-													<Button
-														variant='outline'
-														className='h-9 rounded-2xl px-3'
-														onClick={() => notifyInfo("Management tools on the way", "Stay tuned.")}>
-														Manage
-													</Button>
-												</div>
+								</thead>
+								<tbody>
+									{loading ? (
+										<tr>
+											<td colSpan={4} className='rounded-3xl bg-white/80 px-5 py-10 text-center text-muted'>
+												<LoadingScreen
+													message='Loading customers...'
+													description='Please wait while we fetch the customer list.'
+													className='border-none bg-transparent shadow-none'
+												/>
 											</td>
 										</tr>
-									))
-								)}
-							</tbody>
-						</table>
-					</div>
+									) : users.length === 0 ? (
+										<tr>
+											<td colSpan={4} className='rounded-3xl bg-white/80 px-5 py-10 text-center text-muted'>
+												No customers match these filters yet.
+											</td>
+										</tr>
+									) : (
+										users.map((user) => {
+											const relativeJoined = formatRelativeTime(user.created_at);
+											return (
+												<tr
+													key={user.id}
+													className='align-middle rounded-3xl border border-border/70 bg-white/90 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-xl'>
+													<td className='px-5 py-4 align-middle first:rounded-l-3xl'>
+														<div className='flex items-center gap-4'>
+															<div className='flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 text-base font-semibold text-slate-700'>
+																{getInitials(user)}
+															</div>
+															<div>
+																<p className='font-semibold text-slate-900'>
+																	{user.full_name || `${user.first_name} ${user.last_name}`}
+																</p>
+																<p className='text-xs text-muted'>
+																	<a href={`mailto:${user.email}`} className='text-sky-600 hover:underline'>
+																		{user.email}
+																	</a>
+																</p>
+															</div>
+														</div>
+													</td>
+													<td className='px-5 py-4 align-middle'>
+														<RolePill role={user.role} />
+													</td>
+													<td className='px-5 py-4 align-middle text-slate-600'>
+														<p className='text-sm font-semibold text-slate-900'>{formatDate(user.created_at)}</p>
+														{relativeJoined && (
+															<p className='text-xs font-semibold text-emerald-600'>{relativeJoined}</p>
+														)}
+													</td>
+													<td className='px-5 py-4 align-middle text-center'>
+														<Button
+															variant='outline'
+															className='rounded-full border border-border/70 px-4 text-slate-700 hover:bg-slate-50'
+															onClick={() => notifyInfo("Management tools on the way", "Stay tuned.")}>
+															Manage
+														</Button>
+													</td>
+												</tr>
+											);
+										})
+									)}
+								</tbody>
+							</table>
+						</div>
+						<div className='flex flex-wrap items-center justify-between gap-3 border-t border-border/70 px-5 py-4 text-sm text-slate-600'>
+							<div>
+								<p className='font-semibold text-slate-900'>
+									Page {currentPage} of {totalPages}
+								</p>
+								<p className='text-xs text-muted'>{paginationCopy}</p>
+							</div>
+							<div className='flex flex-wrap items-center gap-2'>
+								<Button
+									variant='outline'
+									className='rounded-full border border-border/70 px-4 text-slate-700 hover:bg-slate-50'
+									onClick={() => goToPage(currentPage - 1)}
+									disabled={!canGoPrev || loading}>
+									Previous
+								</Button>
+								<Button
+									variant='outline'
+									className='rounded-full border border-border/70 px-4 text-slate-700 hover:bg-slate-50'
+									onClick={() => goToPage(currentPage + 1)}
+									disabled={!canGoNext || loading}>
+									Next
+								</Button>
+							</div>
+						</div>
+					</>
 				)}
 			</div>
 		</div>
@@ -269,7 +368,7 @@ function getInitials(user: AdminUser) {
 	const first = (user.first_name || "").charAt(0);
 	const last = (user.last_name || "").charAt(0);
 	const fallback = (user.full_name || user.email || "").charAt(0);
-	return (first + last).trim() || fallback.toUpperCase();
+	return ((first + last).trim() || fallback || "").toUpperCase();
 }
 
 function formatDate(value?: string) {
@@ -277,4 +376,31 @@ function formatDate(value?: string) {
 	const date = new Date(value);
 	if (Number.isNaN(date.getTime())) return "—";
 	return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatRelativeTime(value?: string) {
+	if (!value) return "";
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return "";
+	const diffMs = Date.now() - date.getTime();
+	const minute = 60 * 1000;
+	const hour = 60 * minute;
+	const day = 24 * hour;
+	const month = 30 * day;
+
+	if (Math.abs(diffMs) < minute) return "just now";
+	if (Math.abs(diffMs) < hour) {
+		const minutes = Math.round(diffMs / minute) || 1;
+		return relativeTimeFormatter.format(-minutes, "minute");
+	}
+	if (Math.abs(diffMs) < day) {
+		const hours = Math.round(diffMs / hour) || 1;
+		return relativeTimeFormatter.format(-hours, "hour");
+	}
+	if (Math.abs(diffMs) < month) {
+		const days = Math.round(diffMs / day) || 1;
+		return relativeTimeFormatter.format(-days, "day");
+	}
+	const months = Math.round(diffMs / month) || 1;
+	return relativeTimeFormatter.format(-months, "month");
 }
