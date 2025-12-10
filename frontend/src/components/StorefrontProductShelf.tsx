@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ProductGallery } from "@/components/ProductGallery";
 import { api } from "@/lib/api";
 import { normalizePaginatedResponse } from "@/lib/pagination";
@@ -10,6 +9,7 @@ import { handleError } from "@/lib/handleError";
 import type { Product } from "@/types/product";
 import type { PaginationMeta } from "@/types/pagination";
 import type { StorefrontFilters } from "@/types/storefront";
+import { PaginationControls } from "@/components/PaginationControls";
 
 interface StorefrontProductShelfProps {
 	initialItems: Product[];
@@ -35,8 +35,6 @@ export function StorefrontProductShelf({
 
 	const currentPage = meta?.current_page ?? page;
 	const lastPage = meta?.last_page ?? currentPage;
-	const canGoPrev = currentPage > 1;
-	const canGoNext = lastPage ? currentPage < lastPage : false;
 	const filterSignature = JSON.stringify(filters);
 	const initialFilterSignature = useRef(filterSignature);
 
@@ -90,15 +88,6 @@ export function StorefrontProductShelf({
 		fetchPage(1, { force: true });
 	}, [filterSignature, fetchPage]);
 
-	const rangeLabel = useMemo(() => {
-		if (!meta) {
-			return `Showing ${items.length} items`;
-		}
-		const from = meta.from ?? (currentPage - 1) * perPage + 1;
-		const to = meta.to ?? from + items.length - 1;
-		return `Showing ${from}-${to} of ${meta.total ?? items.length} devices`;
-	}, [meta, items.length, currentPage, perPage]);
-
 	return (
 		<div ref={containerRef} className='space-y-4'>
 			{error && (
@@ -113,32 +102,15 @@ export function StorefrontProductShelf({
 
 			<ProductGallery products={items} scope='storefront' />
 
-			{meta?.last_page && meta.last_page > 1 && (
-				<div className='flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-white/70 px-4 py-3 text-sm text-muted'>
-					<span>{rangeLabel}</span>
-					<div className='flex items-center gap-2'>
-						<Button
-							type='button'
-							variant='outline'
-							className='rounded-2xl px-4'
-							disabled={!canGoPrev || loading}
-							onClick={() => fetchPage(currentPage - 1)}>
-							Previous
-						</Button>
-						<span className='text-xs text-muted'>
-							Page {currentPage} of {meta.last_page}
-						</span>
-						<Button
-							type='button'
-							variant='outline'
-							className='rounded-2xl px-4'
-							disabled={!canGoNext || loading}
-							onClick={() => fetchPage(currentPage + 1)}>
-							Next
-						</Button>
-					</div>
-				</div>
-			)}
+			<PaginationControls
+				meta={meta}
+				itemsCount={items.length}
+				pageSize={perPage}
+				loading={loading}
+				entityLabel='devices'
+				className='rounded-2xl border border-border/80 bg-white/70 px-4 py-3 text-muted'
+				onPageChange={(page) => fetchPage(page)}
+			/>
 		</div>
 	);
 }

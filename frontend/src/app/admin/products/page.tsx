@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { api } from "@/lib/api";
-import { normalizePaginatedResponse } from "@/lib/pagination";
+import { normalizePaginatedResponse, summarizePagination } from "@/lib/pagination";
 import type { Product } from "@/types/product";
 import type { PaginatedResponse, PaginationMeta } from "@/types/pagination";
 import { useAuth } from "@/store/auth";
@@ -17,6 +17,7 @@ import { handleError } from "@/lib/handleError";
 import { BRAND_FILTER_OPTIONS, CATEGORY_FILTER_OPTIONS, type CatalogOption } from "@/constants/catalog";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
+import { PaginationControls } from "@/components/PaginationControls";
 
 const DATE_FILTERS = [
 	{ id: "all", label: "All time", days: null },
@@ -136,6 +137,16 @@ export default function AdminProducts() {
 		const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
 		return items.filter((item) => (item.created_at ? Date.parse(item.created_at) >= cutoff : false)).length;
 	}, [items]);
+
+	const paginationSummary = useMemo(
+		() => summarizePagination(meta, { fallbackCount: items.length, pageSize: PER_PAGE }),
+		[meta, items.length]
+	);
+
+	const paginationCopy = paginationSummary.hasResults
+		? `Showing ${paginationSummary.from}-${paginationSummary.to} of ${paginationSummary.total} products`
+		: "Showing 0 products";
+	const paginationPositionCopy = `Page ${paginationSummary.currentPage} of ${paginationSummary.lastPage}`;
 
 	const handleApplyFilters = () => {
 		const next = { ...filters };
@@ -274,7 +285,7 @@ export default function AdminProducts() {
 					</div>
 				</div>
 				<div className='mt-4 text-sm text-muted'>
-					Showing {items.length} products · Page {meta?.current_page ?? 1} of {meta?.last_page ?? 1}
+					{paginationCopy} · {paginationPositionCopy}
 				</div>
 			</section>
 
@@ -400,40 +411,14 @@ export default function AdminProducts() {
 							</table>
 						</div>
 
-						{meta?.last_page && meta.last_page > 1 && (
-							<div className='flex flex-wrap items-center justify-between gap-3 border-t border-border/80 bg-slate-50/60 px-5 py-4 text-sm text-muted'>
-								<span>
-									Showing {meta.from ?? 0}-{meta.to ?? items.length} of {meta.total ?? items.length} products
-								</span>
-								<div className='flex items-center gap-2'>
-									<Button
-										variant='outline'
-										size='sm'
-										type='button'
-										disabled={(meta.current_page ?? 1) <= 1 || loading}
-										onClick={() => loadProducts(Math.max((meta?.current_page ?? 1) - 1, 1))}>
-										Previous
-									</Button>
-									<span className='text-xs text-slate-500'>
-										Page {meta.current_page ?? 1} of {meta.last_page}
-									</span>
-									<Button
-										variant='outline'
-										size='sm'
-										type='button'
-										disabled={!meta.last_page || (meta.current_page ?? 1) >= meta.last_page || loading}
-										onClick={() =>
-											loadProducts(
-												meta?.last_page
-													? Math.min((meta?.current_page ?? 1) + 1, meta.last_page)
-													: (meta?.current_page ?? 1) + 1
-											)
-										}>
-										Next
-									</Button>
-								</div>
-							</div>
-						)}
+						<PaginationControls
+							meta={meta}
+							itemsCount={items.length}
+							pageSize={PER_PAGE}
+							loading={loading}
+							entityLabel='products'
+							onPageChange={(page) => loadProducts(page)}
+						/>
 					</>
 				)}
 			</div>

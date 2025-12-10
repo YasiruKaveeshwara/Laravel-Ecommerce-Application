@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { notifyInfo } from "@/lib/notify";
 import { handleError } from "@/lib/handleError";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { summarizePagination } from "@/lib/pagination";
+import { PaginationControls } from "@/components/PaginationControls";
 
 type AdminUser = {
 	id: string;
@@ -54,7 +56,6 @@ export default function AdminCustomers() {
 	const [error, setError] = useState<string | null>(null);
 	const [filters, setFilters] = useState<AdminFilters>(() => createDefaultFilters());
 	const [appliedFilters, setAppliedFilters] = useState<AdminFilters>(() => createDefaultFilters());
-	const [currentPage, setCurrentPage] = useState(1);
 	const appliedFiltersRef = useRef(appliedFilters);
 	const pageRef = useRef(1);
 	const fetchMe = useAuth((state) => state.fetchMe);
@@ -87,7 +88,6 @@ export default function AdminCustomers() {
 			setMeta(response?.meta || null);
 			const resolvedPage = response?.meta?.current_page ?? pageToFetch;
 			pageRef.current = resolvedPage;
-			setCurrentPage(resolvedPage);
 		} catch (err: unknown) {
 			const message = handleError(err, {
 				title: "Customer fetch failed",
@@ -120,22 +120,18 @@ export default function AdminCustomers() {
 		return { totalCustomers, adminCount, newThisMonth };
 	}, [users]);
 
-	const totalRecords = meta?.total ?? 0;
-	const pageSize = meta?.per_page ?? PER_PAGE;
-	const totalPages = meta?.last_page ?? 1;
+	const paginationSummary = useMemo(
+		() => summarizePagination(meta, { fallbackCount: users.length, pageSize: PER_PAGE }),
+		[meta, users.length]
+	);
+
 	const filtersDirty = useMemo(() => {
 		return filters.search !== appliedFilters.search || filters.role !== appliedFilters.role;
 	}, [filters, appliedFilters]);
 
-	const hasRecords = totalRecords > 0;
-	const rangeStart = hasRecords ? (currentPage - 1) * pageSize + 1 : 0;
-	const rawRangeEnd = hasRecords ? rangeStart + users.length - 1 : 0;
-	const rangeEnd = hasRecords ? Math.max(rangeStart, rawRangeEnd) : 0;
-	const paginationCopy = hasRecords
-		? `Showing ${rangeStart}-${rangeEnd} of ${totalRecords} accounts`
+	const paginationCopy = paginationSummary.hasResults
+		? `Showing ${paginationSummary.from}-${paginationSummary.to} of ${paginationSummary.total} accounts`
 		: "Showing 0 accounts";
-	const canGoPrev = currentPage > 1;
-	const canGoNext = currentPage < totalPages;
 
 	const handleApplyFilters = () => {
 		const next = { ...filters };
@@ -148,15 +144,6 @@ export default function AdminCustomers() {
 		setFilters(next);
 		setAppliedFilters(next);
 		loadCustomers(next, 1);
-	};
-
-	const goToPage = (target: number) => {
-		if (loading) return;
-		const normalized = Math.min(Math.max(target, 1), totalPages || 1);
-		if (normalized === currentPage) {
-			return;
-		}
-		loadCustomers(undefined, normalized);
 	};
 
 	const emptyStateLoading = loading && users.length === 0;
@@ -311,30 +298,14 @@ export default function AdminCustomers() {
 								</tbody>
 							</table>
 						</div>
-						<div className='flex flex-wrap items-center justify-between gap-3 border-t border-border/70 px-5 py-4 text-sm text-slate-600'>
-							<div>
-								<p className='font-semibold text-slate-900'>
-									Page {currentPage} of {totalPages}
-								</p>
-								<p className='text-xs text-muted'>{paginationCopy}</p>
-							</div>
-							<div className='flex flex-wrap items-center gap-2'>
-								<Button
-									variant='outline'
-									className='rounded-full border border-border/70 px-4 text-slate-700 hover:bg-slate-50'
-									onClick={() => goToPage(currentPage - 1)}
-									disabled={!canGoPrev || loading}>
-									Previous
-								</Button>
-								<Button
-									variant='outline'
-									className='rounded-full border border-border/70 px-4 text-slate-700 hover:bg-slate-50'
-									onClick={() => goToPage(currentPage + 1)}
-									disabled={!canGoNext || loading}>
-									Next
-								</Button>
-							</div>
-						</div>
+						<PaginationControls
+							meta={meta}
+							itemsCount={users.length}
+							pageSize={PER_PAGE}
+							loading={loading}
+							entityLabel='accounts'
+							onPageChange={(page) => loadCustomers(undefined, page)}
+						/>
 					</>
 				)}
 			</div>
