@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { notifyError, notifyInfo, notifySuccess } from "@/lib/notify";
 import { BRAND_PRESET_LABELS, CATEGORY_OPTIONS } from "@/constants/catalog";
+import { handleError } from "@/lib/handleError";
 
 type ProductForm = {
 	name: string;
@@ -149,9 +150,8 @@ export default function NewProduct() {
 			await api("/admin/products", { method: "POST", isForm: true, body: payload });
 			notifySuccess("Device published", `${form.name} is now live in inventory.`);
 			router.push("/admin/products");
-		} catch (error: any) {
-			const message = error?.message || "Unable to save product";
-			notifyError("Publish failed", message);
+		} catch (error: unknown) {
+			handleError(error, { title: "Publish failed", fallbackMessage: "Unable to save product." });
 		} finally {
 			setLoading(false);
 		}

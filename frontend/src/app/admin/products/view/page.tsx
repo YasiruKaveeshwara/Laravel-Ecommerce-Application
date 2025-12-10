@@ -9,14 +9,16 @@ import { clearProductSelection, readProductSelection } from "@/lib/productSelect
 import { useAuth } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import { ProductDetail } from "@/components/ProductDetail";
-import { notifyError, notifyInfo } from "@/lib/notify";
+import { notifyInfo } from "@/lib/notify";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { handleError } from "@/lib/handleError";
 
 export default function AdminProductViewPage() {
 	const router = useRouter();
 	const fetchMe = useAuth((state) => state.fetchMe);
 	const [product, setProduct] = useState<Product | null>(null);
 	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
+	const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
 	useEffect(() => {
 		fetchMe();
@@ -25,7 +27,9 @@ export default function AdminProductViewPage() {
 	useEffect(() => {
 		const stored = readProductSelection("admin");
 		if (!stored) {
-			setError("Select a device from inventory to view its details.");
+			const fallback = "Select a device from inventory to view its details.";
+			setStatusMessage(fallback);
+			handleError(new Error(fallback), { title: "No device selected", fallbackMessage: fallback });
 			setLoading(false);
 			return;
 		}
@@ -34,10 +38,10 @@ export default function AdminProductViewPage() {
 		}
 		api("/admin/products/detail", { method: "POST", body: { product_id: stored.id } })
 			.then((res: Product) => setProduct(res))
-			.catch((err: any) => {
-				const message = err?.message || "Unable to load product.";
-				setError(message);
-				notifyError("Product load failed", message);
+			.catch((err: unknown) => {
+				const fallback = "We couldn't refresh that device. Try selecting it again from inventory.";
+				setStatusMessage(fallback);
+				handleError(err, { title: "Product load failed", fallbackMessage: fallback });
 			})
 			.finally(() => setLoading(false));
 	}, []);
@@ -73,8 +77,14 @@ export default function AdminProductViewPage() {
 				</div>
 			</div>
 
-			{!loading && error && (
-				<div className='rounded-3xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-700'>{error}</div>
+			{loading && !product && (
+				<LoadingScreen message='Loading product' description='Syncing catalog details from admin.' />
+			)}
+
+			{!loading && !product && (
+				<div className='rounded-3xl border border-border bg-white/80 p-10 text-center text-muted shadow-card'>
+					{statusMessage ?? "Select a device from inventory to view its details."}
+				</div>
 			)}
 
 			{product && (
