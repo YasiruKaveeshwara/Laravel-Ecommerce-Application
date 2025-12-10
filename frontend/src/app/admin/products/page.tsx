@@ -26,6 +26,14 @@ const DATE_FILTERS = [
 
 const PER_PAGE = 20;
 
+const currencyFormatter = new Intl.NumberFormat(undefined, {
+	style: "currency",
+	currency: "USD",
+	minimumFractionDigits: 2,
+});
+
+const relativeTimeFormatter = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+
 type AdminFilters = {
 	search: string;
 	brand: string;
@@ -108,6 +116,19 @@ export default function AdminProducts() {
 		return items.reduce((sum, item) => sum + Number(item.price || 0), 0);
 	}, [items]);
 
+	const totalInventoryValueDisplay = useMemo(() => formatCurrency(totalInventoryValue), [totalInventoryValue]);
+
+	const uniqueBrandsCount = useMemo(() => {
+		const brands = new Set(
+			items.map((item) => item.brand?.trim().toLowerCase()).filter((brand): brand is string => Boolean(brand))
+		);
+		return brands.size;
+	}, [items]);
+
+	const premiumCount = useMemo(() => {
+		return items.filter((item) => Number(item.price ?? 0) >= 1000).length;
+	}, [items]);
+
 	const publishedThisMonth = useMemo(() => {
 		const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
 		return items.filter((item) => (item.created_at ? Date.parse(item.created_at) >= cutoff : false)).length;
@@ -142,6 +163,11 @@ export default function AdminProducts() {
 		router.push("/admin/products/view");
 	};
 
+	const openEditor = (product: Product) => {
+		rememberProductSelection(product, "admin");
+		router.push("/admin/products/edit");
+	};
+
 	const emptyStateLoading = loading && items.length === 0;
 
 	return (
@@ -162,11 +188,7 @@ export default function AdminProducts() {
 			<div className='grid gap-4 md:grid-cols-3'>
 				<SummaryTile label='Total devices' value={(meta?.total ?? items.length).toString()} hint='Live in catalog' />
 				<SummaryTile label='Published last 30 days' value={publishedThisMonth.toString()} hint='Recent launches' />
-				<SummaryTile
-					label='Inventory value'
-					value={`$${totalInventoryValue.toFixed(2)}`}
-					hint='Based on retail price'
-				/>
+				<SummaryTile label='Inventory value' value={totalInventoryValueDisplay} hint='Based on retail price' />
 			</div>
 
 			<section className='rounded-3xl border border-border bg-white/80 p-6 shadow-card backdrop-blur'>
@@ -231,7 +253,7 @@ export default function AdminProducts() {
 				<div className='rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700'>{error}</div>
 			)}
 
-			<div className='rounded-3xl border border-border bg-white shadow-card'>
+			<div className='rounded-3xl border border-border bg-gradient-to-b from-white via-white to-slate-50 shadow-card'>
 				{emptyStateLoading ? (
 					<LoadingScreen
 						message='Syncing inventory…'
@@ -240,82 +262,110 @@ export default function AdminProducts() {
 					/>
 				) : (
 					<>
-						<div className='overflow-hidden rounded-3xl'>
-							<table className='w-full text-left text-sm'>
-								<thead className='bg-slate-50 text-slate-500'>
+						<div className='overflow-x-auto px-2 pb-2'>
+							<table className='w-full border-separate border-spacing-y-3 text-sm text-slate-600'>
+								<thead className='text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500'>
 									<tr>
-										<th className='px-5 py-3 font-medium'>Product</th>
-										<th className='px-5 py-3 font-medium'>Brand</th>
-										<th className='px-5 py-3 font-medium'>Category</th>
-										<th className='px-5 py-3 font-medium'>Price</th>
-										<th className='px-5 py-3 font-medium'>Added</th>
-										<th className='px-5 py-3 font-medium text-right'>Actions</th>
+										<th className='px-5 py-2 text-left'>Product</th>
+										<th className='px-5 py-2 text-left'>Brand</th>
+										<th className='px-5 py-2 text-left'>Category</th>
+										<th className='px-5 py-2 text-left'>Price</th>
+										<th className='px-5 py-2 text-left'>Added</th>
+										<th className='px-5 py-2 text-right'>Actions</th>
 									</tr>
 								</thead>
 								<tbody>
 									{loading ? (
 										<tr>
-											<td colSpan={6} className='px-5 py-8 text-center text-muted'>
-												Loading inventory...
+											<td colSpan={6} className='rounded-3xl bg-white/80 px-5 py-10 text-center text-muted'>
+												<LoadingScreen
+													message='Loading products…'
+													description='Fetching devices from your inventory.'
+													className='border-none bg-transparent shadow-none'
+												/>
 											</td>
 										</tr>
 									) : items.length === 0 ? (
 										<tr>
-											<td colSpan={6} className='px-5 py-8 text-center text-muted'>
+											<td colSpan={6} className='rounded-3xl bg-white/80 px-5 py-10 text-center text-muted'>
 												No products match these filters yet.
 											</td>
 										</tr>
 									) : (
-										items.map((item) => (
-											<tr key={item.id} className='border-t border-border/80'>
-												<td className='px-5 py-4'>
-													<div className='flex items-center gap-4'>
-														<img
-															src={item.image_url || "/placeholder.svg"}
-															alt={item.name}
-															className='h-14 w-14 rounded-2xl object-cover shadow-sm'
-														/>
-														<div>
-															<p className='font-semibold text-slate-900'>{item.name}</p>
+										items.map((item) => {
+											const relativeAdded = formatRelativeTime(item.created_at);
+											const priceDisplay = formatCurrency(item.price);
+											return (
+												<tr
+													key={item.id}
+													className='align-middle rounded-3xl border border-border/70 bg-white/90 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-xl cursor-pointer'
+													onClick={() => openDetail(item)}
+													onKeyDown={(event) => {
+														if (event.key === "Enter" || event.key === " ") {
+															event.preventDefault();
+															openDetail(item);
+														}
+													}}
+													tabIndex={0}
+													role='button'>
+													<td className='px-5 py-2 align-middle first:rounded-l-3xl'>
+														<div className='flex items-center gap-4'>
+															<div className='relative'>
+																<img
+																	src={item.image_url || "/placeholder.svg"}
+																	alt={item.name}
+																	className='h-16 w-16 rounded-2xl object-cover shadow-lg ring-1 ring-slate-100'
+																/>
+															</div>
+															<div>
+																<p className='font-semibold text-slate-900'>{item.name}</p>
+															</div>
 														</div>
-													</div>
-												</td>
-												<td className='px-5 py-4 text-slate-600'>{item.brand || "—"}</td>
-												<td className='px-5 py-4'>
-													<span className='rounded-full bg-slate-50 px-3 py-1 text-xs font-medium capitalize text-slate-600'>
-														{item.category || "—"}
-													</span>
-												</td>
-												<td className='px-5 py-4 font-semibold text-slate-900'>
-													${Number(item.price || 0).toFixed(2)}
-												</td>
-												<td className='px-5 py-4 text-slate-600'>{formatDate(item.created_at)}</td>
-												<td className='px-5 py-4 text-right'>
-													<div className='flex justify-end gap-2'>
-														<Button
-															variant='ghost'
-															size='sm'
-															className='border border-border text-slate-700 hover:bg-slate-50'
-															onClick={() => openDetail(item)}>
-															View
-														</Button>
-														<Button
-															variant='ghost'
-															size='sm'
-															className='text-slate-600'
-															onClick={() => notifyInfo("Device editing", "This workflow ships soon.")}>
-															Edit
-														</Button>
-														<Button
-															variant='outline'
-															size='sm'
-															onClick={() => notifyInfo("Archive coming soon", "Bulk delete will land shortly.")}>
-															Delete
-														</Button>
-													</div>
-												</td>
-											</tr>
-										))
+													</td>
+													<td className='px-5 py-4 align-middle'>
+														<span className='inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-600'>
+															{item.brand || "Unbranded"}
+														</span>
+													</td>
+													<td className='px-5 py-4 align-middle'>
+														<span className='inline-flex rounded-2xl bg-slate-100 px-3 py-1 text-xs font-medium capitalize text-slate-700 ring-1 ring-slate-200'>
+															{item.category || "Uncategorized"}
+														</span>
+													</td>
+													<td className='px-5 py-2 align-middle'>
+														<p className='text-base font-semibold text-slate-900'>{priceDisplay}</p>
+													</td>
+													<td className='px-5 py-2 align-middle text-slate-600'>
+														<p>{formatDate(item.created_at)}</p>
+														{relativeAdded && <p className='text-xs font-semibold text-emerald-600'>{relativeAdded}</p>}
+													</td>
+													<td className='px-5 py-4 align-middle text-right'>
+														<div className='flex flex-wrap justify-end gap-2'>
+															<Button
+																variant='ghost'
+																size='sm'
+																className='rounded-full px-4 text-slate-600 hover:bg-slate-50'
+																onClick={(event) => {
+																	event.stopPropagation();
+																	openEditor(item);
+																}}>
+																Edit
+															</Button>
+															<Button
+																variant='outline'
+																size='sm'
+																className='rounded-full border border-rose-200 px-4 text-rose-600 hover:bg-rose-50'
+																onClick={(event) => {
+																	event.stopPropagation();
+																	notifyInfo("Archive coming soon", "Bulk delete will land shortly.");
+																}}>
+																Delete
+															</Button>
+														</div>
+													</td>
+												</tr>
+											);
+										})
 									)}
 								</tbody>
 							</table>
@@ -428,9 +478,43 @@ function SummaryTile({ label, value, hint }: { label: string; value: string; hin
 	);
 }
 
+function formatCurrency(value?: string | number | null) {
+	const numericValue = Number(value ?? 0);
+	return currencyFormatter.format(Number.isFinite(numericValue) ? numericValue : 0);
+}
+
 function formatDate(value?: string | null) {
 	if (!value) return "—";
 	const date = new Date(value);
 	if (Number.isNaN(date.getTime())) return "—";
 	return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatRelativeTime(value?: string | null) {
+	if (!value) return "";
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return "";
+	const diffMs = Date.now() - date.getTime();
+	const minute = 60 * 1000;
+	const hour = 60 * minute;
+	const day = 24 * hour;
+	const month = 30 * day;
+
+	if (Math.abs(diffMs) < minute) {
+		return "just now";
+	}
+	if (Math.abs(diffMs) < hour) {
+		const minutes = Math.round(diffMs / minute) || 1;
+		return relativeTimeFormatter.format(-minutes, "minute");
+	}
+	if (Math.abs(diffMs) < day) {
+		const hours = Math.round(diffMs / hour) || 1;
+		return relativeTimeFormatter.format(-hours, "hour");
+	}
+	if (Math.abs(diffMs) < month) {
+		const days = Math.round(diffMs / day) || 1;
+		return relativeTimeFormatter.format(-days, "day");
+	}
+	const months = Math.round(diffMs / month) || 1;
+	return relativeTimeFormatter.format(-months, "month");
 }

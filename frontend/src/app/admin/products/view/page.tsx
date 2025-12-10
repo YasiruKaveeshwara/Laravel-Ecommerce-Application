@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Product } from "@/types/product";
-import { clearProductSelection, readProductSelection } from "@/lib/productSelection";
+import { clearProductSelection, readProductSelection, rememberProductSelection } from "@/lib/productSelection";
 import { useAuth } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import { ProductDetail } from "@/components/ProductDetail";
@@ -55,7 +55,11 @@ export default function AdminProductViewPage() {
 	const heroSubtitle = product?.description || "Review imagery, pricing, and catalog metadata.";
 
 	const handleEdit = () => {
-		notifyInfo("Edit panel coming soon", "Publishing tools are being finalized.");
+		if (!product) {
+			return;
+		}
+		rememberProductSelection(product, "admin");
+		router.push("/admin/products/edit");
 	};
 
 	const handleArchive = () => {
