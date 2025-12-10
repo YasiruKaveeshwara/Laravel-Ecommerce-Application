@@ -12,10 +12,11 @@ import { useAuth } from "@/store/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { rememberProductSelection } from "@/lib/productSelection";
-import { notifyInfo } from "@/lib/notify";
+import { notifySuccess } from "@/lib/notify";
 import { handleError } from "@/lib/handleError";
 import { BRAND_FILTER_OPTIONS, CATEGORY_FILTER_OPTIONS, type CatalogOption } from "@/constants/catalog";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 
 const DATE_FILTERS = [
 	{ id: "all", label: "All time", days: null },
@@ -60,6 +61,8 @@ export default function AdminProducts() {
 	const [loading, setLoading] = useState(true);
 	const [meta, setMeta] = useState<PaginationMeta | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [productPendingDelete, setProductPendingDelete] = useState<Product | null>(null);
+	const [deleteLoading, setDeleteLoading] = useState(false);
 	const fetchMe = useAuth((s) => s.fetchMe);
 	const router = useRouter();
 
@@ -166,6 +169,32 @@ export default function AdminProducts() {
 	const openEditor = (product: Product) => {
 		rememberProductSelection(product, "admin");
 		router.push("/admin/products/edit");
+	};
+
+	const requestDelete = (product: Product) => {
+		setProductPendingDelete(product);
+	};
+
+	const closeDeleteDialog = () => {
+		if (deleteLoading) return;
+		setProductPendingDelete(null);
+	};
+
+	const performDelete = async () => {
+		if (!productPendingDelete) return;
+		setDeleteLoading(true);
+		const currentPage = meta?.current_page ?? 1;
+		try {
+			await api(`/admin/products/${productPendingDelete.id}`, { method: "DELETE" });
+			setItems((prev) => prev.filter((item) => item.id !== productPendingDelete.id));
+			notifySuccess("Device deleted", `${productPendingDelete.name} was removed from inventory.`);
+			setProductPendingDelete(null);
+			loadProducts(currentPage);
+		} catch (err) {
+			handleError(err, { title: "Delete failed", fallbackMessage: "Unable to remove device." });
+		} finally {
+			setDeleteLoading(false);
+		}
 	};
 
 	const emptyStateLoading = loading && items.length === 0;
@@ -357,7 +386,7 @@ export default function AdminProducts() {
 																className='rounded-full border border-rose-200 px-4 text-rose-600 hover:bg-rose-50'
 																onClick={(event) => {
 																	event.stopPropagation();
-																	notifyInfo("Archive coming soon", "Bulk delete will land shortly.");
+																	requestDelete(item);
 																}}>
 																Delete
 															</Button>
@@ -408,6 +437,30 @@ export default function AdminProducts() {
 					</>
 				)}
 			</div>
+			<ConfirmDialog
+				open={Boolean(productPendingDelete)}
+				title='Delete device?'
+				description='This permanently removes the device from the admin catalog and customer storefront.'
+				confirmLabel='Delete device'
+				cancelLabel='Keep device'
+				confirmTone='danger'
+				confirmLoading={deleteLoading}
+				onCancel={closeDeleteDialog}
+				onConfirm={performDelete}
+				disableOutsideClose={deleteLoading}>
+				{productPendingDelete && (
+					<div className='rounded-2xl bg-rose-50 p-4 text-sm text-rose-700'>
+						<p className='font-semibold text-rose-900'>{productPendingDelete.name}</p>
+						<p>
+							{productPendingDelete.brand && (
+								<span className='font-medium text-rose-800'>{productPendingDelete.brand}</span>
+							)}
+							{productPendingDelete.brand && <span className='mx-1 text-rose-500'>•</span>}
+							{formatCurrency(productPendingDelete.price)}
+						</p>
+					</div>
+				)}
+			</ConfirmDialog>
 		</div>
 	);
 }
