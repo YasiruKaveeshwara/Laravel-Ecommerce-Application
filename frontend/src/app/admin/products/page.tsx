@@ -184,14 +184,10 @@ export default function AdminProducts() {
 	};
 
 	const requestDelete = (product: Product) => {
-		<ProductImage
-			src={item.image_url}
-			alt={item.name}
-			className='h-16 w-16 shadow-lg ring-1 ring-slate-100'
-			rounded='rounded-2xl'
-		/>;
-		setProductPendingDelete(null);
+		setProductPendingDelete(product);
 	};
+
+	const closeDeleteDialog = () => setProductPendingDelete(null);
 
 	const performDelete = async () => {
 		if (!productPendingDelete) return;

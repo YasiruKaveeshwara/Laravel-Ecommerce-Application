@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 export type ProductImageProps = {
 	src?: string | null;
 	alt: string;
-	className?: string;
+	className?: string; // applied to outer wrapper; use to size the component
 	fallbackClassName?: string;
 	rounded?: string;
 };
@@ -28,25 +28,22 @@ export function ProductImage({ src, alt, className, fallbackClassName, rounded =
 	const colorIdx = Math.abs(hashString(alt)) % palette.length;
 	const gradient = palette[colorIdx];
 
-	return showFallback ? (
-		<div
-			className={cn(
-				"flex h-full w-full items-center justify-center bg-linear-to-br text-white",
-				gradient,
-				rounded,
-				fallbackClassName,
-				className
-			)}>
-			<span className='text-lg font-semibold tracking-wide'>{initials}</span>
+	return (
+		<div className={cn("relative overflow-hidden", rounded, className)}>
+			{showFallback ? (
+				<div
+					className={cn(
+						"flex h-full w-full items-center justify-center bg-linear-to-br text-white text-lg font-semibold tracking-wide",
+						gradient,
+						fallbackClassName
+					)}>
+					<span>{initials}</span>
+				</div>
+			) : (
+				// eslint-disable-next-line @next/next/no-img-element
+				<img src={src} alt={alt} className='h-full w-full object-cover' onError={() => setFailed(true)} />
+			)}
 		</div>
-	) : (
-		// eslint-disable-next-line @next/next/no-img-element
-		<img
-			src={src}
-			alt={alt}
-			className={cn("h-full w-full object-cover", rounded, className)}
-			onError={() => setFailed(true)}
-		/>
 	);
 }
 
