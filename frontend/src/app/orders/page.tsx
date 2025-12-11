@@ -41,7 +41,7 @@ export default function OrdersPage() {
 		} finally {
 			setLoading(false);
 		}
-	}, [user?.id]);
+	}, [user]);
 
 	useEffect(() => {
 		if (!initialized) {
@@ -99,13 +99,13 @@ export default function OrdersPage() {
 	}, [orders]);
 
 	return (
-		<div className='mx-auto max-w-6xl space-y-6 px-4 py-10'>
-			<header className='rounded-3xl border border-border bg-white/80 p-6 shadow-card backdrop-blur'>
+		<div className='mx-auto space-y-6 '>
+			<header className='rounded-3xl '>
 				<div className='flex flex-wrap items-center gap-4'>
 					<div>
-						<p className='text-sm font-semibold uppercase tracking-[0.3em] text-slate-500'>Orders</p>
-						<h1 className='text-3xl font-semibold text-slate-900'>Delivery pulse</h1>
-						<p className='text-sm text-muted'>Everything you have purchased from Pulse Mobile lives here.</p>
+						<p className='text-sm font-semibold uppercase tracking-[0.3em] text-slate-500'>My Orders</p>
+						<h1 className='text-3xl font-semibold text-slate-900'>Your delivery pulse</h1>
+						<p className='text-sm text-muted'>Track your purchases, receipts, and shipment updates.</p>
 					</div>
 					<div className='flex flex-wrap items-center gap-3 ml-auto'>
 						<Button

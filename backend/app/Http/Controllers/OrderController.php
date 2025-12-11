@@ -12,13 +12,24 @@ class OrderController extends Controller
 {
   public function index(Request $request)
   {
-    $user = $request->user();
+    $user = $request->user() ?: auth('sanctum')->user();
 
     $perPage = (int) $request->query('per_page', 20);
     $perPage = $perPage > 0 && $perPage <= 100 ? $perPage : 20;
 
+    if (! $user) {
+      abort(401, 'Unauthenticated');
+    }
+
     $orders = Order::with('items')
-      ->where('user_id', $user->id)
+      ->where(function ($query) use ($user) {
+        $query->where('user_id', $user->id);
+
+        // Include guest orders previously placed with the same email so customers can still see them
+        if ($user->email) {
+          $query->orWhere('email', $user->email);
+        }
+      })
       ->latest()
       ->paginate($perPage);
 
@@ -67,6 +78,8 @@ class OrderController extends Controller
 
   public function store(Request $request)
   {
+    $authUser = $request->user() ?: auth('sanctum')->user();
+
     $data = $request->validate([
       'first_name' => ['required', 'string', 'max:100'],
       'last_name' => ['required', 'string', 'max:100'],
@@ -91,11 +104,16 @@ class OrderController extends Controller
     $itemsInput = $data['items'];
     unset($data['items']);
 
-    $userId = $request->user()?->id;
+    // Attach authenticated user if present
+    if ($authUser) {
+      $data['user_id'] = $authUser->id;
+      $data['email'] = $authUser->email ?? $data['email'];
+      $data['first_name'] = $authUser->first_name ?? $data['first_name'];
+      $data['last_name'] = $authUser->last_name ?? $data['last_name'];
+    }
 
-    $order = DB::transaction(function () use ($data, $itemsInput, $userId) {
+    $order = DB::transaction(function () use ($data, $itemsInput) {
       $order = Order::create(array_merge($data, [
-        'user_id' => $userId,
         'status' => 'processing',
       ]));
 

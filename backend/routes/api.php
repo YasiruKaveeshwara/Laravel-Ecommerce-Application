@@ -23,7 +23,6 @@ Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
 Route::get('/products',        [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 Route::post('/products/detail', [ProductController::class, 'detail'])->name('products.detail');
-Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
 
 // -------- Authenticated (token) --------
 Route::middleware('auth:sanctum')->group(function () {
@@ -34,7 +33,8 @@ Route::middleware('auth:sanctum')->group(function () {
 	Route::delete('/me',  [AuthController::class, 'destroyProfile'])->name('auth.me.destroy');
 	Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
 
-	// Customer orders
+	// Customer orders (auth required for read/create)
+	Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
 	Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
 	Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
 

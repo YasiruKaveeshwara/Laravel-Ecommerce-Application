@@ -1,25 +1,65 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/store/cart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { dismissToast, notifyLoading, notifySuccess } from "@/lib/notify";
+import { dismissToast, notifyLoading, notifySuccess, notifyWarning } from "@/lib/notify";
 import { api } from "@/lib/api";
 import { handleError } from "@/lib/handleError";
+import { useAuth } from "@/store/auth";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function CheckoutPage() {
 	const router = useRouter();
 	const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 	const items = useCart((state) => state.items);
 	const clearCart = useCart((state) => state.clearCart);
+	const user = useAuth((state) => state.user);
+	const hydrate = useAuth((state) => state.hydrate);
+	const initialized = useAuth((state) => state.initialized);
+	const [formDefaults, setFormDefaults] = useState({
+		firstName: "",
+		lastName: "",
+		email: "",
+		phone: "",
+		address1: "",
+		address2: "",
+		city: "",
+		state: "",
+		zip: "",
+		country: "",
+	});
+
+	useEffect(() => {
+		hydrate();
+	}, [hydrate]);
+
+	useEffect(() => {
+		if (user) {
+			setFormDefaults((prev) => ({
+				...prev,
+				firstName: user.first_name || prev.firstName,
+				lastName: user.last_name || prev.lastName,
+				email: user.email || prev.email,
+			}));
+		}
+	}, [user]);
 
 	const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
 	const shipping = subtotal > 0 ? 15 : 0;
 	const taxes = subtotal * 0.08;
 	const total = subtotal + shipping + taxes;
+
+	if (!initialized) {
+		return (
+			<div className='mx-auto max-w-3xl px-4 py-20'>
+				<LoadingScreen message='Preparing checkout…' description='Verifying your session and cart.' />
+			</div>
+		);
+	}
 
 	if (!items.length) {
 		return (
@@ -27,6 +67,21 @@ export default function CheckoutPage() {
 				<p className='text-2xl font-semibold text-slate-900'>There is nothing to checkout.</p>
 				<p className='text-sm text-muted'>Add products to your cart before starting the checkout flow.</p>
 				<Button onClick={() => router.push("/")}>Browse catalog</Button>
+			</div>
+		);
+	}
+
+	if (!user) {
+		return (
+			<div className='mx-auto flex max-w-3xl flex-col items-center gap-4 px-4 py-20 text-center'>
+				<p className='text-2xl font-semibold text-slate-900'>Sign in to complete checkout</p>
+				<p className='text-sm text-muted'>Orders are linked to your account so you can track them later.</p>
+				<div className='flex gap-3'>
+					<Button onClick={() => router.push("/login?next=/checkout")}>Sign in</Button>
+					<Button variant='outline' onClick={() => router.push("/signup")}>
+						Create account
+					</Button>
+				</div>
 			</div>
 		);
 	}
@@ -39,6 +94,12 @@ export default function CheckoutPage() {
 		const formData = new FormData(form);
 		const toValue = (key: string) => (formData.get(key) ?? "").toString().trim();
 		const roundCurrency = (value: number) => Number(value.toFixed(2));
+
+		if (!user) {
+			notifyWarning("Sign in required", "Please sign in to place your order.");
+			router.push("/login?next=/checkout");
+			return;
+		}
 
 		const payload = {
 			first_name: toValue("firstName"),
@@ -90,16 +151,20 @@ export default function CheckoutPage() {
 				<section className='rounded-3xl border border-border bg-white/90 p-6 shadow-card'>
 					<h2 className='text-lg font-semibold text-slate-900'>Shipping details</h2>
 					<div className='mt-4 grid gap-4 md:grid-cols-2'>
-						<Input name='firstName' placeholder='First name' required />
-						<Input name='lastName' placeholder='Last name' required />
-						<Input name='email' type='email' placeholder='Email address' required />
-						<Input name='phone' type='tel' placeholder='Phone number' required />
-						<Input name='address1' placeholder='Street address' required />
-						<Input name='address2' placeholder='Apartment, suite, etc. (optional)' />
-						<Input name='city' placeholder='City' required />
-						<Input name='state' placeholder='State/Province' required />
-						<Input name='zip' placeholder='ZIP / Postal code' required />
-						<Input name='country' placeholder='Country' required />
+						<Input name='firstName' placeholder='First name' defaultValue={formDefaults.firstName} required />
+						<Input name='lastName' placeholder='Last name' defaultValue={formDefaults.lastName} required />
+						<Input name='email' type='email' placeholder='Email address' defaultValue={formDefaults.email} required />
+						<Input name='phone' type='tel' placeholder='Phone number' defaultValue={formDefaults.phone} required />
+						<Input name='address1' placeholder='Street address' defaultValue={formDefaults.address1} required />
+						<Input
+							name='address2'
+							placeholder='Apartment, suite, etc. (optional)'
+							defaultValue={formDefaults.address2}
+						/>
+						<Input name='city' placeholder='City' defaultValue={formDefaults.city} required />
+						<Input name='state' placeholder='State/Province' defaultValue={formDefaults.state} required />
+						<Input name='zip' placeholder='ZIP / Postal code' defaultValue={formDefaults.zip} required />
+						<Input name='country' placeholder='Country' defaultValue={formDefaults.country} required />
 					</div>
 					<h2 className='text-lg font-semibold mt-6 text-slate-900'>Payment</h2>
 					<div className='mt-4 grid gap-4'>

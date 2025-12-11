@@ -91,23 +91,32 @@ export default function OrderDetailPage() {
 	}
 
 	return (
-		<div className='mx-auto max-w-6xl space-y-6 px-4 py-10'>
-			<div className='flex flex-wrap items-center gap-3'>
-				<Button variant='ghost' className='rounded-2xl px-3' asChild>
-					<Link href='/orders'>
-						<ArrowLeft className='mr-2 h-4 w-4' /> Back to orders
-					</Link>
-				</Button>
-				<Button variant='outline' className='rounded-2xl px-4' onClick={loadOrder} disabled={loading}>
-					<RefreshCcw className='mr-2 h-4 w-4' /> Refresh
-				</Button>
-			</div>
+		<div className='mx-auto'>
+			<header className=''>
+				<div className='flex flex-wrap items-center gap-3'>
+					<div>
+						<p className='text-sm font-semibold uppercase tracking-[0.3em] text-slate-500'>My Orders</p>
+						<h1 className='text-3xl font-semibold text-slate-900'>Order details</h1>
+						<p className='text-sm text-muted'>View items, totals, and status for this purchase.</p>
+					</div>
+					<div className='flex flex-wrap items-center gap-3 ml-auto'>
+						<Button variant='ghost' className='rounded-2xl px-3' asChild>
+							<Link href='/orders'>
+								<ArrowLeft className='mr-2 h-4 w-4' /> Back to orders
+							</Link>
+						</Button>
+						<Button variant='outline' className='rounded-2xl' onClick={loadOrder} disabled={loading}>
+							<RefreshCcw className='mr-2 h-4 w-4' /> Refresh
+						</Button>
+					</div>
+				</div>
+			</header>
 
 			{loading ? (
 				<LoadingScreen
 					message='Loading order details…'
 					description='Give us a moment to reconstruct this receipt.'
-					className='bg-transparent shadow-none'
+					className='bg-white'
 				/>
 			) : error ? (
 				<div className='rounded-3xl border border-rose-200 bg-rose-50 px-6 py-8 text-center text-sm text-rose-700'>
