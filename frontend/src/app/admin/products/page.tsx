@@ -9,7 +9,6 @@ import { api } from "@/lib/api";
 import { normalizePaginatedResponse, summarizePagination } from "@/lib/pagination";
 import type { Product } from "@/types/product";
 import type { PaginatedResponse, PaginationMeta } from "@/types/pagination";
-import { useAuth } from "@/store/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { rememberProductSelection } from "@/lib/productSelection";
@@ -19,6 +18,7 @@ import { BRAND_FILTER_OPTIONS, CATEGORY_FILTER_OPTIONS, type CatalogOption } fro
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { PaginationControls } from "@/components/PaginationControls";
+import { useRouteGuard } from "@/lib/useRouteGuard";
 
 const DATE_FILTERS = [
 	{ id: "all", label: "All time", days: null },
@@ -65,8 +65,8 @@ export default function AdminProducts() {
 	const [error, setError] = useState<string | null>(null);
 	const [productPendingDelete, setProductPendingDelete] = useState<Product | null>(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
-	const fetchMe = useAuth((s) => s.fetchMe);
 	const router = useRouter();
+	const guard = useRouteGuard({ requireAuth: true, requireRole: "administrator" });
 
 	useEffect(() => {
 		appliedFiltersRef.current = appliedFilters;
@@ -110,12 +110,24 @@ export default function AdminProducts() {
 	}, []);
 
 	useEffect(() => {
-		fetchMe();
-	}, [fetchMe]);
-
-	useEffect(() => {
 		loadProducts(1);
 	}, [loadProducts]);
+
+	if (guard.pending) {
+		return (
+			<div className='mx-auto max-w-3xl px-4 py-24'>
+				<LoadingScreen
+					message='Checking access'
+					description='Verifying your administrator session.'
+					className='border-none bg-transparent shadow-none'
+				/>
+			</div>
+		);
+	}
+
+	if (!guard.allowed) {
+		return null;
+	}
 
 	const totalInventoryValue = useMemo(() => {
 		return items.reduce((sum, item) => sum + Number(item.price || 0), 0);

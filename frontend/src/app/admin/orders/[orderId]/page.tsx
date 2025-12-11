@@ -3,36 +3,26 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, RefreshCcw, ShieldCheck } from "lucide-react";
+import { ArrowLeft, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/store/auth";
 import { api } from "@/lib/api";
 import { handleError } from "@/lib/handleError";
 import type { Order } from "@/types/order";
 import { OrderDetailView } from "@/components/orders/OrderDetailView";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useRouteGuard } from "@/lib/useRouteGuard";
 
 export default function AdminOrderDetailPage() {
 	const params = useParams<{ orderId: string }>();
 	const orderId = Array.isArray(params?.orderId) ? params.orderId[0] : params?.orderId;
 	const router = useRouter();
-	const user = useAuth((state) => state.user);
-	const hydrate = useAuth((state) => state.hydrate);
-	const initialized = useAuth((state) => state.initialized);
+	const guard = useRouteGuard({ requireAuth: true, requireRole: "administrator" });
 
 	const [order, setOrder] = useState<Order | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
-	useEffect(() => {
-		hydrate();
-	}, [hydrate]);
-
 	const loadOrder = useCallback(async () => {
-		if (!user || user.role !== "administrator" || !orderId) {
-			setLoading(false);
-			return;
-		}
 		setLoading(true);
 		setError(null);
 		try {
@@ -45,18 +35,12 @@ export default function AdminOrderDetailPage() {
 		} finally {
 			setLoading(false);
 		}
-	}, [user, orderId]);
+	}, [orderId]);
 
 	useEffect(() => {
-		if (!initialized) {
-			return;
-		}
-		if (!user || user.role !== "administrator") {
-			setLoading(false);
-			return;
-		}
+		if (guard.pending || !guard.allowed) return;
 		loadOrder();
-	}, [initialized, user, loadOrder]);
+	}, [guard.pending, guard.allowed, loadOrder]);
 
 	if (!orderId) {
 		return (
@@ -64,23 +48,15 @@ export default function AdminOrderDetailPage() {
 		);
 	}
 
-	if (!initialized) {
+	if (guard.pending) {
 		return (
 			<div className='mx-auto max-w-3xl px-4 py-20'>
-				<LoadingScreen message='Loading admin context…' description='Verifying your permissions for this order.' />
+				<LoadingScreen message='Checking access' description='Verifying your administrator session.' />
 			</div>
 		);
 	}
 
-	if (!user || user.role !== "administrator") {
-		return (
-			<div className='mx-auto flex max-w-3xl flex-col items-center gap-4 px-4 py-20 text-center'>
-				<ShieldCheck className='h-10 w-10 text-slate-400' />
-				<h1 className='text-2xl font-semibold text-slate-900'>Admin privileges required</h1>
-				<Button onClick={() => router.push("/")}>Go home</Button>
-			</div>
-		);
-	}
+	if (!guard.allowed) return null;
 
 	const orderSummary = order
 		? [

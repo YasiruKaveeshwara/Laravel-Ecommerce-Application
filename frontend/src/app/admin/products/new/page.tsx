@@ -7,9 +7,22 @@ import { Button } from "@/components/ui/button";
 import { notifySuccess } from "@/lib/notify";
 import { handleError } from "@/lib/handleError";
 import { AdminProductComposer, type ProductComposerSubmitPayload } from "@/components/admin/AdminProductComposer";
+import { useRouteGuard } from "@/lib/useRouteGuard";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function NewProduct() {
 	const router = useRouter();
+	const guard = useRouteGuard({ requireAuth: true, requireRole: "administrator" });
+
+	if (guard.pending) {
+		return (
+			<div className='mx-auto max-w-3xl px-4 py-24'>
+				<LoadingScreen message='Checking access' description='Verifying your administrator session.' />
+			</div>
+		);
+	}
+
+	if (!guard.allowed) return null;
 
 	const handleSubmit = async ({ form, file }: ProductComposerSubmitPayload) => {
 		if (!file) {

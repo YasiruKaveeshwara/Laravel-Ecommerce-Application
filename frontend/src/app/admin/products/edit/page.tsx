@@ -6,23 +6,29 @@ import { ArrowLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { handleError } from "@/lib/handleError";
 import type { Product } from "@/types/product";
-import { useAuth } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { AdminProductComposer, type ProductComposerSubmitPayload } from "@/components/admin/AdminProductComposer";
 import { readProductSelection, rememberProductSelection } from "@/lib/productSelection";
 import { notifySuccess } from "@/lib/notify";
+import { useRouteGuard } from "@/lib/useRouteGuard";
 
 export default function EditProductPage() {
 	const router = useRouter();
-	const fetchMe = useAuth((state) => state.fetchMe);
 	const [product, setProduct] = useState<Product | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [statusMessage, setStatusMessage] = useState<string | null>(null);
+	const guard = useRouteGuard({ requireAuth: true, requireRole: "administrator" });
 
-	useEffect(() => {
-		fetchMe();
-	}, [fetchMe]);
+	if (guard.pending) {
+		return (
+			<div className='mx-auto max-w-3xl px-4 py-24'>
+				<LoadingScreen message='Checking access' description='Verifying your administrator session.' />
+			</div>
+		);
+	}
+
+	if (!guard.allowed) return null;
 
 	useEffect(() => {
 		const stored = readProductSelection("admin");

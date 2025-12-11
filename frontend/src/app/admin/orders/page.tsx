@@ -3,19 +3,17 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowUpRight, Loader2, PackageSearch, RefreshCcw, Search, ShieldCheck, Truck } from "lucide-react";
+import { ArrowUpRight, Loader2, PackageSearch, RefreshCcw, Search, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
-import { useAuth } from "@/store/auth";
 import { handleError } from "@/lib/handleError";
 import type { Order, PaginatedResponse, PaginationMeta } from "@/types/order";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useRouteGuard } from "@/lib/useRouteGuard";
 
 export default function AdminOrdersPage() {
-	const user = useAuth((state) => state.user);
-	const hydrate = useAuth((state) => state.hydrate);
-	const initialized = useAuth((state) => state.initialized);
+	const guard = useRouteGuard({ requireAuth: true, requireRole: "administrator" });
 	const router = useRouter();
 	const [search, setSearch] = useState("");
 	const [activeSearch, setActiveSearch] = useState("");
@@ -25,22 +23,12 @@ export default function AdminOrdersPage() {
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		hydrate();
-	}, [hydrate]);
-
-	useEffect(() => {
 		const id = setTimeout(() => setActiveSearch(search.trim()), 400);
 		return () => clearTimeout(id);
 	}, [search]);
 
 	const loadOrders = useCallback(
 		async (queryOverride?: string) => {
-			if (!user || user.role !== "administrator") {
-				setOrders([]);
-				setMeta(null);
-				setLoading(false);
-				return;
-			}
 			setLoading(true);
 			setError(null);
 			try {
@@ -61,21 +49,13 @@ export default function AdminOrdersPage() {
 				setLoading(false);
 			}
 		},
-		[user, activeSearch]
+		[activeSearch]
 	);
 
 	useEffect(() => {
-		if (!initialized) {
-			return;
-		}
-		if (!user || user.role !== "administrator") {
-			setOrders([]);
-			setMeta(null);
-			setLoading(false);
-			return;
-		}
+		if (guard.pending || !guard.allowed) return;
 		loadOrders();
-	}, [initialized, user, loadOrders]);
+	}, [guard.pending, guard.allowed, loadOrders]);
 
 	const resetFilters = () => {
 		setSearch("");
@@ -93,27 +73,15 @@ export default function AdminOrdersPage() {
 		return { total, processing, revenue };
 	}, [orders]);
 
-	if (!initialized) {
+	if (guard.pending) {
 		return (
 			<div className='mx-auto max-w-3xl px-4 py-24'>
-				<LoadingScreen
-					message='Loading admin context…'
-					description='Give us a second to hydrate your administrator session.'
-				/>
+				<LoadingScreen message='Checking access' description='Verifying your administrator session.' />
 			</div>
 		);
 	}
 
-	if (!user || user.role !== "administrator") {
-		return (
-			<div className='mx-auto flex max-w-3xl flex-col items-center gap-4 px-4 py-24 text-center'>
-				<ShieldCheck className='h-10 w-10 text-slate-400' />
-				<h1 className='text-3xl font-semibold text-slate-900'>Admin access required</h1>
-				<p className='text-sm text-muted'>Only administrators can review all orders.</p>
-				<Button onClick={() => router.push("/")}>Go home</Button>
-			</div>
-		);
-	}
+	if (!guard.allowed) return null;
 
 	const emptyStateLoading = loading && orders.length === 0;
 

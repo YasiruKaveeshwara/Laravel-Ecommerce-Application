@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { api } from "@/lib/api";
-import { useAuth } from "@/store/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { notifyInfo } from "@/lib/notify";
@@ -11,6 +10,7 @@ import { handleError } from "@/lib/handleError";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { summarizePagination } from "@/lib/pagination";
 import { PaginationControls } from "@/components/PaginationControls";
+import { useRouteGuard } from "@/lib/useRouteGuard";
 
 type AdminUser = {
 	id: string;
@@ -50,6 +50,7 @@ type AdminFilters = {
 const createDefaultFilters = (): AdminFilters => ({ search: "", role: "all" });
 
 export default function AdminCustomers() {
+	const { allowed, pending } = useRouteGuard({ requireAuth: true, requireRole: "administrator" });
 	const [users, setUsers] = useState<AdminUser[]>([]);
 	const [meta, setMeta] = useState<PaginationMeta | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -58,15 +59,10 @@ export default function AdminCustomers() {
 	const [appliedFilters, setAppliedFilters] = useState<AdminFilters>(() => createDefaultFilters());
 	const appliedFiltersRef = useRef(appliedFilters);
 	const pageRef = useRef(1);
-	const fetchMe = useAuth((state) => state.fetchMe);
 
 	useEffect(() => {
 		appliedFiltersRef.current = appliedFilters;
 	}, [appliedFilters]);
-
-	useEffect(() => {
-		fetchMe();
-	}, [fetchMe]);
 
 	const loadCustomers = useCallback(async (overrideFilters?: AdminFilters, overridePage?: number) => {
 		setLoading(true);
@@ -100,8 +96,10 @@ export default function AdminCustomers() {
 	}, []);
 
 	useEffect(() => {
-		loadCustomers();
-	}, [loadCustomers]);
+		if (allowed) {
+			loadCustomers();
+		}
+	}, [allowed, loadCustomers]);
 
 	const stats = useMemo(() => {
 		const totalCustomers = users.filter((user) => user.role === "customer").length;
@@ -147,6 +145,20 @@ export default function AdminCustomers() {
 	};
 
 	const emptyStateLoading = loading && users.length === 0;
+
+	if (pending) {
+		return (
+			<LoadingScreen
+				message='Checking permissions...'
+				description='One moment while we verify your access.'
+				className='border-none bg-transparent shadow-none'
+			/>
+		);
+	}
+
+	if (!allowed) {
+		return null;
+	}
 
 	return (
 		<div className='space-y-6'>

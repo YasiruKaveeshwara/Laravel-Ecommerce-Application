@@ -8,9 +8,9 @@ export const metadata = { title: "Orange", description: "Modern ecommerce experi
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang='en'>
-			<body className='min-h-screen bg-bg text-text antialiased'>
+			<body className='min-h-screen bg-bg text-text antialiased flex flex-col'>
 				<Navbar />
-				<main className='w-full px-6 lg:px-12 py-10 space-y-10'>{children}</main>
+				<main className='w-full px-6 lg:px-12 py-10 space-y-10 flex-1'>{children}</main>
 				<Footer />
 				<Toaster />
 			</body>
