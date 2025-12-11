@@ -10,6 +10,7 @@ import type { Product } from "@/types/product";
 import type { PaginationMeta } from "@/types/pagination";
 import type { StorefrontFilters } from "@/types/storefront";
 import { PaginationControls } from "@/components/PaginationControls";
+import { LoadingScreen } from "./LoadingScreen";
 
 interface StorefrontProductShelfProps {
 	initialItems: Product[];
@@ -96,7 +97,11 @@ export function StorefrontProductShelf({
 
 			{loading && (
 				<div className='flex items-center gap-2 text-sm text-muted'>
-					<Loader2 className='h-4 w-4 animate-spin' /> Loading products…
+					<LoadingScreen
+					message="Loading products…"
+					description="Please wait while we fetch the latest products for you."
+					className='border-none bg-transparent shadow-none'
+					/>
 				</div>
 			)}
 
