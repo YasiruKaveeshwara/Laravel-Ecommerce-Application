@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
+import { ProductImage } from "@/components/ProductImage";
 import { api } from "@/lib/api";
 import { normalizePaginatedResponse, summarizePagination } from "@/lib/pagination";
 import type { Product } from "@/types/product";
@@ -183,11 +184,12 @@ export default function AdminProducts() {
 	};
 
 	const requestDelete = (product: Product) => {
-		setProductPendingDelete(product);
-	};
-
-	const closeDeleteDialog = () => {
-		if (deleteLoading) return;
+		<ProductImage
+			src={item.image_url}
+			alt={item.name}
+			className='h-16 w-16 shadow-lg ring-1 ring-slate-100'
+			rounded='rounded-2xl'
+		/>;
 		setProductPendingDelete(null);
 	};
 
@@ -351,10 +353,11 @@ export default function AdminProducts() {
 													<td className='px-5 py-2 align-middle first:rounded-l-3xl'>
 														<div className='flex items-center gap-4'>
 															<div className='relative'>
-																<img
-																	src={item.image_url || "/placeholder.svg"}
+																<ProductImage
+																	src={item.image_url}
 																	alt={item.name}
-																	className='h-16 w-16 rounded-2xl object-cover shadow-lg ring-1 ring-slate-100'
+																	className='h-16 w-16 shadow-lg ring-1 ring-slate-100'
+																	rounded='rounded-2xl'
 																/>
 															</div>
 															<div>

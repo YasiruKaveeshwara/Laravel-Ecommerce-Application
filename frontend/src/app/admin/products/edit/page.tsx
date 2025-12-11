@@ -66,6 +66,7 @@ export default function EditProductPage() {
 		}
 
 		const payload = new FormData();
+		payload.append("_method", "PUT");
 		payload.append("name", form.name.trim());
 		payload.append("brand", form.brand.trim());
 		payload.append("category", form.category);
@@ -77,7 +78,7 @@ export default function EditProductPage() {
 
 		try {
 			const updated: Product = await api(`/admin/products/${product.id}`, {
-				method: "PUT",
+				method: "POST", // send as POST so PHP/Laravel can receive multipart files, _method handles verb
 				isForm: true,
 				body: payload,
 			});

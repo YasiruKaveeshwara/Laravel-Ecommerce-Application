@@ -6,6 +6,7 @@ import { useCart } from "@/store/cart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { notifyInfo, notifySuccess, notifyWarning } from "@/lib/notify";
+import { ProductImage } from "@/components/ProductImage";
 
 export default function CartPage() {
 	const router = useRouter();
@@ -43,10 +44,11 @@ export default function CartPage() {
 							<article
 								key={item.product.id}
 								className='flex flex-col gap-3 rounded-3xl border border-border bg-white/90 p-4 shadow-card sm:flex-row sm:items-center'>
-								<img
-									src={item.product.image_url || "/placeholder.svg"}
+								<ProductImage
+									src={item.product.image_url}
 									alt={item.product.name}
-									className='h-24 w-24 rounded-2xl object-cover'
+									className='h-24 w-24'
+									rounded='rounded-2xl'
 								/>
 								<div className='flex flex-1 flex-col gap-3'>
 									<div>

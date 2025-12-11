@@ -2,6 +2,7 @@ import { Mail, MapPin, PackageCheck, Phone, User, Truck } from "lucide-react";
 import type { ComponentType } from "react";
 import type { Order, OrderItem } from "@/types/order";
 import { cn } from "@/lib/utils";
+import { ProductImage } from "@/components/ProductImage";
 
 const STATUS_META: Record<
 	string,
@@ -178,12 +179,17 @@ export function OrderDetailView({ order, context = "customer" }: { order: Order;
 
 function LineItem({ item }: { item: OrderItem }) {
 	const snapshot = item.product_snapshot;
-	const image = snapshot?.image_url || "/placeholder.svg";
 	return (
 		<li className='flex flex-wrap items-center gap-4 py-4'>
 			<div className='h-16 w-16 overflow-hidden rounded-2xl bg-slate-100'>
-				<img src={image} alt={item.product_name || "Product"} className='h-full w-full object-cover' />
+				<ProductImage
+					src={snapshot?.image_url}
+					alt={item.product_name || "Product"}
+					className='h-full w-full'
+					rounded='rounded-2xl'
+				/>
 			</div>
+			import {ProductImage} from "@/components/ProductImage";
 			<div className='flex-1 min-w-[200px]'>
 				<p className='text-sm font-semibold text-slate-900'>{item.product_name}</p>
 				{item.product_brand && <p className='text-xs text-muted'>{item.product_brand}</p>}

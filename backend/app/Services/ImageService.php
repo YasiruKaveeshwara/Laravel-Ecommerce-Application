@@ -27,14 +27,34 @@ class ImageService
     $img = Image::read($file->getRealPath())
       ->scaleDown(1600);               // keep large enough for web but not huge
 
-    // optional text watermark (simple + robust cross-platform)
+    // optional embedded watermark tiled across the image (Puls Mobile branding)
     if ($watermark) {
-      $img->text('© Your Brand', 20, 36, function ($font) {
-        $font->size(28);
-        $font->color('rgba(255,255,255,0.65)');
-        $font->align('left');
-        $font->valign('top');
-      });
+      // larger, higher-contrast tiled watermark for clarity
+      $fontSize = (int) max(36, min($img->width(), $img->height()) * 0.1);
+      $step = (int) max(220, $fontSize * 2.6);
+      $angle = -18;
+
+      // tile watermark text diagonally so it is baked into the saved image (not an overlay layer)
+      for ($y = -$step; $y < $img->height() + $step; $y += $step) {
+        for ($x = -$step; $x < $img->width() + $step; $x += $step) {
+          $img->text('Puls Mobile', $x, $y, function ($font) use ($fontSize, $angle) {
+            $font->size($fontSize);
+            // slightly higher opacity for legibility, plus shadow stroke via darker outline pass
+            $font->color('rgba(255,255,255,0.48)');
+            $font->align('left');
+            $font->valign('top');
+            $font->angle($angle);
+          });
+          // subtle shadow/outline to make the text read on bright areas
+          $img->text('Puls Mobile', $x + 2, $y + 2, function ($font) use ($fontSize, $angle) {
+            $font->size($fontSize);
+            $font->color('rgba(0,0,0,0.28)');
+            $font->align('left');
+            $font->valign('top');
+            $font->angle($angle);
+          });
+        }
+      }
     }
 
     // store optimized on public disk (encode after all manipulations)
@@ -50,8 +70,13 @@ class ImageService
    * Replace an existing image (if $file provided).
    * Deletes existing optimized/original, returns new paths OR the previous paths if no new file.
    */
-  public function replace(?UploadedFile $file, ?string $currentOptimized, ?string $currentOriginal, string $folder = 'products'): array
-  {
+  public function replace(
+    ?UploadedFile $file,
+    ?string $currentOptimized,
+    ?string $currentOriginal,
+    string $folder = 'products',
+    bool $watermark = true
+  ): array {
     if (!$file) {
       return [
         'image_path' => $currentOptimized,
@@ -59,11 +84,13 @@ class ImageService
       ];
     }
 
-    // delete old ones (ignore errors)
+    // process new first; only delete old after successful save to avoid losing images on failure
+    $newPaths = $this->processAndStore($file, $folder, watermark: $watermark);
+
     $this->delete($currentOptimized);
     $this->delete($currentOriginal);
 
-    return $this->processAndStore($file, $folder);
+    return $newPaths;
   }
 
   /**

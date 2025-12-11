@@ -7,6 +7,7 @@ import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
 import { notifyInfo, notifySuccess } from "@/lib/notify";
 import { BadgeCheck, Pencil, Phone, Rocket, ShieldCheck, Trash2 } from "lucide-react";
+import { ProductImage } from "@/components/ProductImage";
 
 type ProductDetailProps = {
 	product: Product;
@@ -55,12 +56,7 @@ export function ProductDetail({ product, context = "storefront", onAdminEdit, on
 		<section className='grid gap-6 lg:grid-cols-2 lg:items-stretch'>
 			<div className='h-full rounded-3xl border border-border bg-white/90 p-6 shadow-card backdrop-blur'>
 				<div className='flex h-full rounded-3xl border border-border bg-linear-to-br from-slate-50 to-white shadow-card'>
-					{/* eslint-disable-next-line @next/next/no-img-element */}
-					<img
-						src={product.image_url || "/placeholder.svg"}
-						alt={product.name}
-						className='h-full w-full rounded-2xl object-cover'
-					/>
+					<ProductImage src={product.image_url} alt={product.name} className='h-full w-full rounded-2xl' />
 				</div>
 			</div>
 
