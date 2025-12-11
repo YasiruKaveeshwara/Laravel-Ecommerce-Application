@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/store/auth";
@@ -14,14 +14,35 @@ export default function LoginPage() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [loading, setLoading] = useState(false);
+	const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 	const login = useAuth((s) => s.login);
 	const router = useRouter();
 
+	const emailPattern = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
+
+	const validate = () => {
+		const next: { email?: string; password?: string } = {};
+		const trimmedEmail = email.trim();
+		if (!trimmedEmail) {
+			next.email = "Email is required.";
+		} else if (!emailPattern.test(trimmedEmail)) {
+			next.email = "Enter a valid email address.";
+		}
+		if (!password) {
+			next.password = "Password is required.";
+		} else if (password.length < 8) {
+			next.password = "Password must be at least 8 characters.";
+		}
+		setErrors(next);
+		return Object.keys(next).length === 0;
+	};
+
 	const onSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		if (!validate()) return;
 		setLoading(true);
 		try {
-			const data = await login(email, password);
+			const data = await login(email.trim(), password);
 			const fallback = data.user.role === "administrator" ? "/admin/products" : "/";
 			notifySuccess("Signed in", `Welcome back, ${data.user.first_name}!`);
 			router.push(data.redirect_to || fallback);
@@ -42,14 +63,38 @@ export default function LoginPage() {
 				</div>
 			</div>
 			<form onSubmit={onSubmit} className='space-y-3'>
-				<Input type='email' value={email} onChange={(e) => setEmail(e.target.value)} placeholder='Email' required />
-				<Input
-					type='password'
-					value={password}
-					onChange={(e) => setPassword(e.target.value)}
-					placeholder='Password'
-					required
-				/>
+				<div className='space-y-1'>
+					<Input
+						type='email'
+						value={email}
+						onChange={(e) => setEmail(e.target.value)}
+						placeholder='Email'
+						required
+						aria-invalid={Boolean(errors.email)}
+						aria-describedby={errors.email ? "email-error" : undefined}
+					/>
+					{errors.email && (
+						<p id='email-error' className='text-xs font-semibold text-rose-500'>
+							{errors.email}
+						</p>
+					)}
+				</div>
+				<div className='space-y-1'>
+					<Input
+						type='password'
+						value={password}
+						onChange={(e) => setPassword(e.target.value)}
+						placeholder='Password'
+						required
+						aria-invalid={Boolean(errors.password)}
+						aria-describedby={errors.password ? "password-error" : undefined}
+					/>
+					{errors.password && (
+						<p id='password-error' className='text-xs font-semibold text-rose-500'>
+							{errors.password}
+						</p>
+					)}
+				</div>
 				<Button disabled={loading} type='submit' className='w-full'>
 					Login
 				</Button>

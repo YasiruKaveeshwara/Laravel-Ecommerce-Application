@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/store/cart";
@@ -20,6 +20,7 @@ export default function CheckoutPage() {
 	const user = useAuth((state) => state.user);
 	const hydrate = useAuth((state) => state.hydrate);
 	const initialized = useAuth((state) => state.initialized);
+	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [formDefaults, setFormDefaults] = useState({
 		firstName: "",
 		lastName: "",
@@ -52,6 +53,12 @@ export default function CheckoutPage() {
 	const shipping = subtotal > 0 ? 15 : 0;
 	const taxes = subtotal * 0.08;
 	const total = subtotal + shipping + taxes;
+
+	const emailPattern = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
+	const phonePattern = useMemo(() => /^[0-9+()\-\s]{7,20}$/, []);
+	const cardNumberPattern = useMemo(() => /^[0-9\s]{12,19}$/, []);
+	const expiryPattern = useMemo(() => /^(0[1-9]|1[0-2])\/(\d{2})$/, []);
+	const cvcPattern = useMemo(() => /^\d{3,4}$/, []);
 
 	if (!initialized) {
 		return (
@@ -101,17 +108,60 @@ export default function CheckoutPage() {
 			return;
 		}
 
+		const first_name = toValue("firstName");
+		const last_name = toValue("lastName");
+		const email = toValue("email");
+		const phone = toValue("phone");
+		const address1 = toValue("address1");
+		const address2 = toValue("address2");
+		const city = toValue("city");
+		const state = toValue("state");
+		const postal_code = toValue("zip");
+		const country = toValue("country");
+		const cardName = toValue("cardName");
+		const cardNumber = toValue("cardNumber").replace(/\s+/g, "");
+		const expiry = toValue("expiry");
+		const cvc = toValue("cvc");
+		const agree = formData.get("agree") === "on";
+
+		const nextErrors: Record<string, string> = {};
+		if (!first_name || first_name.length < 2) nextErrors.firstName = "Enter a first name (min 2 characters).";
+		if (!last_name || last_name.length < 2) nextErrors.lastName = "Enter a last name (min 2 characters).";
+		if (!email) nextErrors.email = "Email is required.";
+		else if (!emailPattern.test(email)) nextErrors.email = "Enter a valid email.";
+		if (!phone) nextErrors.phone = "Phone is required.";
+		else if (!phonePattern.test(phone)) nextErrors.phone = "Enter a valid phone number.";
+		if (!address1) nextErrors.address1 = "Street address is required.";
+		if (!city) nextErrors.city = "City is required.";
+		if (!state) nextErrors.state = "State/Province is required.";
+		if (!postal_code) nextErrors.zip = "Postal code is required.";
+		if (!country) nextErrors.country = "Country is required.";
+		if (!cardName) nextErrors.cardName = "Name on card is required.";
+		if (!cardNumber) nextErrors.cardNumber = "Card number is required.";
+		else if (!cardNumberPattern.test(cardNumber)) nextErrors.cardNumber = "Enter a valid card number.";
+		if (!expiry) nextErrors.expiry = "Expiry is required.";
+		else if (!expiryPattern.test(expiry)) nextErrors.expiry = "Use MM/YY format.";
+		if (!cvc) nextErrors.cvc = "CVC is required.";
+		else if (!cvcPattern.test(cvc)) nextErrors.cvc = "Enter a 3-4 digit CVC.";
+		if (!agree) nextErrors.agree = "You must accept the terms.";
+
+		setErrors(nextErrors);
+		if (Object.keys(nextErrors).length > 0) {
+			notifyWarning("Fix checkout fields", "Please correct the highlighted inputs.");
+			return;
+		}
+
 		const payload = {
-			first_name: toValue("firstName"),
-			last_name: toValue("lastName"),
-			email: toValue("email"),
-			phone: toValue("phone"),
-			address1: toValue("address1"),
-			address2: toValue("address2"),
-			city: toValue("city"),
-			state: toValue("state"),
-			postal_code: toValue("zip"),
-			country: toValue("country"),
+			first_name,
+			last_name,
+			email,
+			phone,
+			address1,
+			address2,
+			city,
+			state,
+			postal_code,
+			country,
 			subtotal: roundCurrency(subtotal),
 			tax_total: roundCurrency(taxes),
 			shipping_total: roundCurrency(shipping),
@@ -151,32 +201,236 @@ export default function CheckoutPage() {
 				<section className='rounded-3xl border border-border bg-white/90 p-6 shadow-card'>
 					<h2 className='text-lg font-semibold text-slate-900'>Shipping details</h2>
 					<div className='mt-4 grid gap-4 md:grid-cols-2'>
-						<Input name='firstName' placeholder='First name' defaultValue={formDefaults.firstName} required />
-						<Input name='lastName' placeholder='Last name' defaultValue={formDefaults.lastName} required />
-						<Input name='email' type='email' placeholder='Email address' defaultValue={formDefaults.email} required />
-						<Input name='phone' type='tel' placeholder='Phone number' defaultValue={formDefaults.phone} required />
-						<Input name='address1' placeholder='Street address' defaultValue={formDefaults.address1} required />
+						<div className='space-y-1'>
+							<Input
+								name='firstName'
+								placeholder='First name'
+								defaultValue={formDefaults.firstName}
+								required
+								onChange={() => setErrors((prev) => ({ ...prev, firstName: undefined }))}
+								aria-invalid={Boolean(errors.firstName)}
+								aria-describedby={errors.firstName ? "first-name-error" : undefined}
+							/>
+							{errors.firstName && (
+								<p id='first-name-error' className='text-xs font-semibold text-rose-500'>
+									{errors.firstName}
+								</p>
+							)}
+						</div>
+						<div className='space-y-1'>
+							<Input
+								name='lastName'
+								placeholder='Last name'
+								defaultValue={formDefaults.lastName}
+								required
+								onChange={() => setErrors((prev) => ({ ...prev, lastName: undefined }))}
+								aria-invalid={Boolean(errors.lastName)}
+								aria-describedby={errors.lastName ? "last-name-error" : undefined}
+							/>
+							{errors.lastName && (
+								<p id='last-name-error' className='text-xs font-semibold text-rose-500'>
+									{errors.lastName}
+								</p>
+							)}
+						</div>
+						<div className='space-y-1'>
+							<Input
+								name='email'
+								type='email'
+								placeholder='Email address'
+								defaultValue={formDefaults.email}
+								required
+								onChange={() => setErrors((prev) => ({ ...prev, email: undefined }))}
+								aria-invalid={Boolean(errors.email)}
+								aria-describedby={errors.email ? "email-error" : undefined}
+							/>
+							{errors.email && (
+								<p id='email-error' className='text-xs font-semibold text-rose-500'>
+									{errors.email}
+								</p>
+							)}
+						</div>
+						<div className='space-y-1'>
+							<Input
+								name='phone'
+								type='tel'
+								placeholder='Phone number'
+								defaultValue={formDefaults.phone}
+								required
+								onChange={() => setErrors((prev) => ({ ...prev, phone: undefined }))}
+								aria-invalid={Boolean(errors.phone)}
+								aria-describedby={errors.phone ? "phone-error" : undefined}
+							/>
+							{errors.phone && (
+								<p id='phone-error' className='text-xs font-semibold text-rose-500'>
+									{errors.phone}
+								</p>
+							)}
+						</div>
+						<div className='space-y-1 md:col-span-2'>
+							<Input
+								name='address1'
+								placeholder='Street address'
+								defaultValue={formDefaults.address1}
+								required
+								onChange={() => setErrors((prev) => ({ ...prev, address1: undefined }))}
+								aria-invalid={Boolean(errors.address1)}
+								aria-describedby={errors.address1 ? "address1-error" : undefined}
+							/>
+							{errors.address1 && (
+								<p id='address1-error' className='text-xs font-semibold text-rose-500'>
+									{errors.address1}
+								</p>
+							)}
+						</div>
 						<Input
 							name='address2'
 							placeholder='Apartment, suite, etc. (optional)'
 							defaultValue={formDefaults.address2}
+							onChange={() => setErrors((prev) => ({ ...prev, address2: undefined }))}
 						/>
-						<Input name='city' placeholder='City' defaultValue={formDefaults.city} required />
-						<Input name='state' placeholder='State/Province' defaultValue={formDefaults.state} required />
-						<Input name='zip' placeholder='ZIP / Postal code' defaultValue={formDefaults.zip} required />
-						<Input name='country' placeholder='Country' defaultValue={formDefaults.country} required />
+						<div className='space-y-1'>
+							<Input
+								name='city'
+								placeholder='City'
+								defaultValue={formDefaults.city}
+								required
+								onChange={() => setErrors((prev) => ({ ...prev, city: undefined }))}
+								aria-invalid={Boolean(errors.city)}
+								aria-describedby={errors.city ? "city-error" : undefined}
+							/>
+							{errors.city && (
+								<p id='city-error' className='text-xs font-semibold text-rose-500'>
+									{errors.city}
+								</p>
+							)}
+						</div>
+						<div className='space-y-1'>
+							<Input
+								name='state'
+								placeholder='State/Province'
+								defaultValue={formDefaults.state}
+								required
+								onChange={() => setErrors((prev) => ({ ...prev, state: undefined }))}
+								aria-invalid={Boolean(errors.state)}
+								aria-describedby={errors.state ? "state-error" : undefined}
+							/>
+							{errors.state && (
+								<p id='state-error' className='text-xs font-semibold text-rose-500'>
+									{errors.state}
+								</p>
+							)}
+						</div>
+						<div className='space-y-1'>
+							<Input
+								name='zip'
+								placeholder='ZIP / Postal code'
+								defaultValue={formDefaults.zip}
+								required
+								onChange={() => setErrors((prev) => ({ ...prev, zip: undefined }))}
+								aria-invalid={Boolean(errors.zip)}
+								aria-describedby={errors.zip ? "zip-error" : undefined}
+							/>
+							{errors.zip && (
+								<p id='zip-error' className='text-xs font-semibold text-rose-500'>
+									{errors.zip}
+								</p>
+							)}
+						</div>
+						<div className='space-y-1'>
+							<Input
+								name='country'
+								placeholder='Country'
+								defaultValue={formDefaults.country}
+								required
+								onChange={() => setErrors((prev) => ({ ...prev, country: undefined }))}
+								aria-invalid={Boolean(errors.country)}
+								aria-describedby={errors.country ? "country-error" : undefined}
+							/>
+							{errors.country && (
+								<p id='country-error' className='text-xs font-semibold text-rose-500'>
+									{errors.country}
+								</p>
+							)}
+						</div>
 					</div>
 					<h2 className='text-lg font-semibold mt-6 text-slate-900'>Payment</h2>
 					<div className='mt-4 grid gap-4'>
 						<div className='grid gap-4 md:grid-cols-2'>
-							<Input name='cardName' placeholder='Name on card' required />
-							<Input name='cardNumber' placeholder='Card number' inputMode='numeric' pattern='[0-9 ]*' required />
-							<Input name='expiry' placeholder='MM/YY' required />
-							<Input name='cvc' placeholder='CVC' inputMode='numeric' maxLength={4} required />
+							<div className='space-y-1'>
+								<Input
+									name='cardName'
+									placeholder='Name on card'
+									required
+									onChange={() => setErrors((prev) => ({ ...prev, cardName: undefined }))}
+									aria-invalid={Boolean(errors.cardName)}
+									aria-describedby={errors.cardName ? "card-name-error" : undefined}
+								/>
+								{errors.cardName && (
+									<p id='card-name-error' className='text-xs font-semibold text-rose-500'>
+										{errors.cardName}
+									</p>
+								)}
+							</div>
+							<div className='space-y-1'>
+								<Input
+									name='cardNumber'
+									placeholder='Card number'
+									inputMode='numeric'
+									pattern='[0-9 ]*'
+									required
+									onChange={() => setErrors((prev) => ({ ...prev, cardNumber: undefined }))}
+									aria-invalid={Boolean(errors.cardNumber)}
+									aria-describedby={errors.cardNumber ? "card-number-error" : undefined}
+								/>
+								{errors.cardNumber && (
+									<p id='card-number-error' className='text-xs font-semibold text-rose-500'>
+										{errors.cardNumber}
+									</p>
+								)}
+							</div>
+							<div className='space-y-1'>
+								<Input
+									name='expiry'
+									placeholder='MM/YY'
+									required
+									onChange={() => setErrors((prev) => ({ ...prev, expiry: undefined }))}
+									aria-invalid={Boolean(errors.expiry)}
+									aria-describedby={errors.expiry ? "expiry-error" : undefined}
+								/>
+								{errors.expiry && (
+									<p id='expiry-error' className='text-xs font-semibold text-rose-500'>
+										{errors.expiry}
+									</p>
+								)}
+							</div>
+							<div className='space-y-1'>
+								<Input
+									name='cvc'
+									placeholder='CVC'
+									inputMode='numeric'
+									maxLength={4}
+									required
+									onChange={() => setErrors((prev) => ({ ...prev, cvc: undefined }))}
+									aria-invalid={Boolean(errors.cvc)}
+									aria-describedby={errors.cvc ? "cvc-error" : undefined}
+								/>
+								{errors.cvc && (
+									<p id='cvc-error' className='text-xs font-semibold text-rose-500'>
+										{errors.cvc}
+									</p>
+								)}
+							</div>
 						</div>
 					</div>
 					<label className='mt-4 flex items-start gap-2 text-sm text-slate-600'>
-						<input type='checkbox' required className='mt-1' />
+						<input
+							type='checkbox'
+							name='agree'
+							required
+							className='mt-1'
+							onChange={() => setErrors((prev) => ({ ...prev, agree: undefined }))}
+						/>
 						<span>
 							I agree to the{" "}
 							<Link href='/terms' className='text-sky-600 underline'>
@@ -185,6 +439,7 @@ export default function CheckoutPage() {
 							.
 						</span>
 					</label>
+					{errors.agree && <p className='text-xs font-semibold text-rose-500'>{errors.agree}</p>}
 					<Button type='submit' className='mt-6 w-full' disabled={isPlacingOrder}>
 						{isPlacingOrder ? "Processing…" : "Place order"}
 					</Button>

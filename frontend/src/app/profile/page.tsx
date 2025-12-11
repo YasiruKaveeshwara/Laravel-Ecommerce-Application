@@ -25,6 +25,16 @@ export default function ProfilePage() {
 	const [saving, setSaving] = useState(false);
 	const [deleting, setDeleting] = useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+	const [errors, setErrors] = useState<{
+		firstName?: string;
+		lastName?: string;
+		email?: string;
+		newPassword?: string;
+		confirmPassword?: string;
+		deletePassword?: string;
+	}>({});
+
+	const emailPattern = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
 
 	useEffect(() => {
 		fetchMe();
@@ -64,18 +74,47 @@ export default function ProfilePage() {
 			router.push("/login");
 			return;
 		}
-		setSaving(true);
 
-		if (newPassword && newPassword !== confirmPassword) {
-			setSaving(false);
-			notifyError("Passwords do not match", "Please confirm your new password.");
+		const nextErrors: typeof errors = {};
+		if (!firstName.trim()) {
+			nextErrors.firstName = "First name is required.";
+		} else if (firstName.trim().length < 2) {
+			nextErrors.firstName = "First name must be at least 2 characters.";
+		}
+		if (!lastName.trim()) {
+			nextErrors.lastName = "Last name is required.";
+		} else if (lastName.trim().length < 2) {
+			nextErrors.lastName = "Last name must be at least 2 characters.";
+		}
+		if (!email.trim()) {
+			nextErrors.email = "Email is required.";
+		} else if (!emailPattern.test(email.trim())) {
+			nextErrors.email = "Enter a valid email address.";
+		}
+		if (newPassword) {
+			if (newPassword.length < 8) {
+				nextErrors.newPassword = "Password must be at least 8 characters.";
+			}
+			if (newPassword !== confirmPassword) {
+				nextErrors.confirmPassword = "Passwords must match.";
+			}
+		}
+		if (!newPassword && confirmPassword) {
+			nextErrors.confirmPassword = "Enter a new password first.";
+		}
+
+		setErrors(nextErrors);
+		if (Object.keys(nextErrors).length > 0) {
+			notifyError("Check the form", "Please fix the highlighted fields.");
 			return;
 		}
 
+		setSaving(true);
+
 		const payload: Record<string, string> = {
-			first_name: firstName,
-			last_name: lastName,
-			email,
+			first_name: firstName.trim(),
+			last_name: lastName.trim(),
+			email: email.trim(),
 		};
 
 		if (newPassword) {
@@ -105,9 +144,11 @@ export default function ProfilePage() {
 			return;
 		}
 		if (!deletePassword) {
+			setErrors((prev) => ({ ...prev, deletePassword: "Enter your password to delete the account." }));
 			notifyWarning("Password required", "Enter your password to delete the account.");
 			return;
 		}
+		setErrors((prev) => ({ ...prev, deletePassword: undefined }));
 		setShowDeleteDialog(true);
 	};
 
@@ -169,13 +210,62 @@ export default function ProfilePage() {
 						</div>
 						<div className='grid gap-4 sm:grid-cols-2'>
 							<Field label='First name'>
-								<Input value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+								<div className='space-y-1'>
+									<Input
+										value={firstName}
+										onChange={(e) => {
+											setFirstName(e.target.value);
+											setErrors((prev) => ({ ...prev, firstName: undefined }));
+										}}
+										required
+										aria-invalid={Boolean(errors.firstName)}
+										aria-describedby={errors.firstName ? "first-name-error" : undefined}
+									/>
+									{errors.firstName && (
+										<p id='first-name-error' className='text-xs font-semibold text-rose-500'>
+											{errors.firstName}
+										</p>
+									)}
+								</div>
 							</Field>
 							<Field label='Last name'>
-								<Input value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+								<div className='space-y-1'>
+									<Input
+										value={lastName}
+										onChange={(e) => {
+											setLastName(e.target.value);
+											setErrors((prev) => ({ ...prev, lastName: undefined }));
+										}}
+										required
+										aria-invalid={Boolean(errors.lastName)}
+										aria-describedby={errors.lastName ? "last-name-error" : undefined}
+									/>
+									{errors.lastName && (
+										<p id='last-name-error' className='text-xs font-semibold text-rose-500'>
+											{errors.lastName}
+										</p>
+									)}
+								</div>
 							</Field>
 							<Field label='Email address' helper='Used for receipts and login.'>
-								<Input type='email' value={email} onChange={(e) => setEmail(e.target.value)} required />
+								<div className='space-y-1'>
+									<Input
+										type='email'
+										value={email}
+										onChange={(e) => {
+											setEmail(e.target.value);
+											setErrors((prev) => ({ ...prev, email: undefined }));
+										}}
+										required
+										aria-invalid={Boolean(errors.email)}
+										aria-describedby={errors.email ? "email-error" : undefined}
+									/>
+									{errors.email && (
+										<p id='email-error' className='text-xs font-semibold text-rose-500'>
+											{errors.email}
+										</p>
+									)}
+								</div>
 							</Field>
 						</div>
 						<div className='flex items-center  rounded-2xl bg-slate-50 '>
@@ -188,20 +278,44 @@ export default function ProfilePage() {
 						</div>
 						<div className='grid gap-4 sm:grid-cols-2'>
 							<Field label='New password' helper='Leave blank to keep current password.'>
-								<Input
-									type='password'
-									value={newPassword}
-									onChange={(e) => setNewPassword(e.target.value)}
-									minLength={8}
-								/>
+								<div className='space-y-1'>
+									<Input
+										type='password'
+										value={newPassword}
+										onChange={(e) => {
+											setNewPassword(e.target.value);
+											setErrors((prev) => ({ ...prev, newPassword: undefined, confirmPassword: undefined }));
+										}}
+										minLength={8}
+										aria-invalid={Boolean(errors.newPassword)}
+										aria-describedby={errors.newPassword ? "new-password-error" : undefined}
+									/>
+									{errors.newPassword && (
+										<p id='new-password-error' className='text-xs font-semibold text-rose-500'>
+											{errors.newPassword}
+										</p>
+									)}
+								</div>
 							</Field>
 							<Field label='Confirm new password'>
-								<Input
-									type='password'
-									value={confirmPassword}
-									onChange={(e) => setConfirmPassword(e.target.value)}
-									minLength={newPassword ? 8 : undefined}
-								/>
+								<div className='space-y-1'>
+									<Input
+										type='password'
+										value={confirmPassword}
+										onChange={(e) => {
+											setConfirmPassword(e.target.value);
+											setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+										}}
+										minLength={newPassword ? 8 : undefined}
+										aria-invalid={Boolean(errors.confirmPassword)}
+										aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
+									/>
+									{errors.confirmPassword && (
+										<p id='confirm-password-error' className='text-xs font-semibold text-rose-500'>
+											{errors.confirmPassword}
+										</p>
+									)}
+								</div>
 							</Field>
 						</div>
 						<Button type='submit' disabled={saving || !isDirty} className='rounded-2xl px-6'>
@@ -244,6 +358,9 @@ export default function ProfilePage() {
 							disabled={deleting}>
 							{deleting ? "Deleting..." : "Delete account"}
 						</Button>
+						{errors.deletePassword && (
+							<p className='mt-2 text-xs font-semibold text-rose-500'>{errors.deletePassword}</p>
+						)}
 					</section>
 				</aside>
 			</form>
