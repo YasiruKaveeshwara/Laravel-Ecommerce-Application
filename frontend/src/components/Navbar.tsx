@@ -27,7 +27,7 @@ const NAV_LINKS: Record<Audience, NavItem[]> = {
   admin: [
     { label: "Inventory", href: "/admin/products", requiresAdmin: true },
     { label: "Orders", href: "/admin/orders", requiresAdmin: true },
-    { label: "Customers", href: "/admin/customers", requiresAdmin: true },
+    { label: "Users", href: "/admin/customers", requiresAdmin: true },
   ],
 };
 
