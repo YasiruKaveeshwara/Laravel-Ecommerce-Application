@@ -1,59 +1,66 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+## Backend (Laravel API)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This folder hosts the Laravel API powering the storefront and admin backoffice. It exposes authentication, products, orders, and users endpoints; implements role‑based access control; and processes product images with watermarking.
 
-## About Laravel
+For a complete endpoint list with examples see: [API.md](./API.md).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Setup (short)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+See `SETUP.md` for details. Quick path:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```
+copy .env.example .env
+php artisan key:generate
+php artisan migrate; php artisan db:seed
+php artisan storage:link
+php -S 127.0.0.1:8000 -t public
+```
 
-## Learning Laravel
+The seeder creates an administrator and a demo customer and hydrates a catalog with generated images (watermarked).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Highlights
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+-   Auth via Sanctum tokens, `auth:sanctum` middleware
+-   `role:administrator` middleware for admin routes
+-   Products service handles filters + image processing (resize, watermark, public URLs)
+-   Orders store captures item snapshots for immutable receipts
+-   Users CRUD + search and role filtering
+-   CORS configured for `api/*` paths; tune `CORS_ALLOWED_ORIGINS` or `FRONTEND_URL`
 
-## Laravel Sponsors
+### Structure
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+-   app/Http/Controllers — Auth, Product, Order, User controllers
+-   app/Services — ImageService, ProductService, UserService
+-   app/Models — User, Product, Order, OrderItem, PersonalAccessToken
+-   routes/api.php — public + protected + admin route groups
+-   config/catalog.php — product categories and brands presets
+-   database/seeders/DatabaseSeeder.php — admin + demo users + catalog with images
 
-### Premium Partners
+### Environment
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Key environment variables (see `.env.example`):
 
-## Contributing
+-   `APP_URL` — base URL used to generate absolute paths
+-   `CORS_ALLOWED_ORIGINS` — CSV list of allowed origins (e.g. `http://localhost:3000`)
+-   `BACKOFFICE_DASHBOARD_URL` — e.g. `/admin/products`
+-   `STOREFRONT_HOME_URL` — e.g. `/`
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Development Notes
 
-## Code of Conduct
+-   Responses are conventional Laravel paginator JSON; `current_page` etc. are present on the root
+-   `Model::preventLazyLoading()` enabled in debug to detect N+1s
+-   Storage proxy route `/storage/{path}` serves files safely from `storage/app/public`
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Troubleshooting and more: [SETUP.md](./SETUP.md) and [docs/Operations.md](../docs/Operations.md) in the repo root.
 
-## Security Vulnerabilities
+### Testing
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+The test suite uses an in-memory SQLite database configured in `phpunit.xml`.
 
-## License
+Run tests:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```
+php artisan test
+```
+
+See also `docs/Testing.md` for an overview of coverage and suggestions.
