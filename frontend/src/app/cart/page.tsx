@@ -1,12 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
 import { useCart } from "@/store/cart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { notifyInfo, notifySuccess, notifyWarning } from "@/lib/notify";
 import { ProductImage } from "@/components/ProductImage";
+import { DeleteButton } from "@/components/DeleteButton";
 
 export default function CartPage() {
 	const router = useRouter();
@@ -70,17 +70,13 @@ export default function CartPage() {
 										<span className='ml-auto text-lg font-semibold text-slate-900'>
 											${(item.unitPrice * item.quantity).toFixed(2)}
 										</span>
-										<Button
-											type='button'
-											variant='ghost'
-											className='text-rose-600'
+										<DeleteButton
+											label='Delete item'
 											onClick={() => {
 												removeItem(item.product.id);
 												notifyWarning("Removed from cart", item.product.name);
-											}}>
-											<Trash2 className='h-4 w-4' />
-											Remove
-										</Button>
+											}}
+										/>
 									</div>
 								</div>
 							</article>

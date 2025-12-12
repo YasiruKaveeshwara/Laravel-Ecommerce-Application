@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { handleError } from "@/lib/handleError";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
+import { DeleteButton } from "@/components/DeleteButton";
 
 export default function ProfilePage() {
 	const router = useRouter();
@@ -350,14 +351,13 @@ export default function ProfilePage() {
 								placeholder='Enter password to confirm'
 							/>
 						</div>
-						<Button
-							type='button'
+						<DeleteButton
 							variant='outline'
-							className='mt-4 w-full rounded-2xl border-rose-400 text-rose-700 hover:bg-rose-100'
+							className='mt-4 w-full rounded-2xl border-rose-400 hover:bg-rose-100'
+							label={deleting ? "Deleting..." : "Delete account"}
 							onClick={handleDelete}
-							disabled={deleting}>
-							{deleting ? "Deleting..." : "Delete account"}
-						</Button>
+							disabled={deleting}
+						/>
 						{errors.deletePassword && (
 							<p className='mt-2 text-xs font-semibold text-rose-500'>{errors.deletePassword}</p>
 						)}

@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { Pencil, Search, Trash2 } from "lucide-react";
+import { Search } from "lucide-react";
 import { api } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,8 @@ import { normalizePaginatedResponse, summarizePagination } from "@/lib/paginatio
 import { PaginationControls } from "@/components/PaginationControls";
 import { useRouteGuard } from "@/lib/useRouteGuard";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
+import { DeleteButton } from "@/components/DeleteButton";
+import { EditButton } from "@/components/EditButton";
 
 type AdminUser = {
 	id: string;
@@ -304,19 +305,8 @@ export default function AdminCustomers() {
 													</td>
 													<td className='px-5 py-4 align-middle text-center'>
 														<div className='flex items-center justify-center gap-2'>
-															<Link
-																href={`/admin/customers/${user.id}`}
-																className='inline-flex items-center justify-center rounded-full border border-border/70 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-slate-50'>
-																<Pencil className='h-4 w-4 mr-2' />
-																Edit
-															</Link>
-															<Button
-																variant='ghost'
-																size='icon'
-																className='rounded-full text-rose-600 hover:bg-rose-50'
-																onClick={() => setDeleteTarget(user)}>
-																<Trash2 className='h-4 w-4' /> Delete
-															</Button>
+															<EditButton href={`/admin/customers/${user.id}`} label='Edit user' />
+															<DeleteButton size='sm' label='Delete user' onClick={() => setDeleteTarget(user)} />
 														</div>
 													</td>
 												</tr>

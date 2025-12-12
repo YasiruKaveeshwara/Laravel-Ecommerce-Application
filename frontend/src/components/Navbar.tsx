@@ -25,9 +25,11 @@ const NAV_LINKS: Record<Audience, NavItem[]> = {
 	guest: [{ label: "My Orders", href: "/orders", requiresAuth: true }],
 	customer: [{ label: "My Orders", href: "/orders", requiresAuth: true }],
 	admin: [
+		{ label: "My Orders", href: "/orders", requiresAuth: true },
 		{ label: "Inventory", href: "/admin/products", requiresAdmin: true },
 		{ label: "Orders", href: "/admin/orders", requiresAdmin: true },
 		{ label: "Users", href: "/admin/customers", requiresAdmin: true },
+		
 	],
 };
 
@@ -208,20 +210,18 @@ export function Navbar() {
 										))}
 									</nav>
 
-									{audience !== "admin" && (
-										<button
-											type='button'
-											onClick={() => handleNavigate({ label: "Cart", href: "/cart" })}
-											className='flex items-center justify-between rounded-2xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-800'>
-											<span>Cart quick view</span>
-											<span className='inline-flex items-center gap-2'>
-												<ShoppingCart className='h-4 w-4' />
-												<span className='rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700'>
-													{cartCount}
-												</span>
+									<button
+										type='button'
+										onClick={() => handleNavigate({ label: "Cart", href: "/cart" })}
+										className='flex items-center justify-between rounded-2xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-800'>
+										<span>Cart quick view</span>
+										<span className='inline-flex items-center gap-2'>
+											<ShoppingCart className='h-4 w-4' />
+											<span className='rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700'>
+												{cartCount}
 											</span>
-										</button>
-									)}
+										</span>
+									</button>
 
 									{user ? (
 										<div className='space-y-3 rounded-2xl border border-border px-4 py-4 text-sm'>
@@ -300,20 +300,18 @@ export function Navbar() {
 						)}>
 						{roleMeta.label}
 					</span>
-					{audience !== "admin" && (
-						<button
-							type='button'
-							onClick={() => handleNavigate({ label: "Cart", href: "/cart" })}
-							className='relative  inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-border text-slate-600 hover:text-slate-900'>
-							<ShoppingCart className='h-5 w-5' />
-							<span className='sr-only'>Cart</span>
-							{cartCount > 0 && (
-								<span className='absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-sky-600 px-1 text-[10px] font-semibold text-white'>
-									{cartCount}
-								</span>
-							)}
-						</button>
-					)}
+					<button
+						type='button'
+						onClick={() => handleNavigate({ label: "Cart", href: "/cart" })}
+						className='relative  inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-border text-slate-600 hover:text-slate-900'>
+						<ShoppingCart className='h-5 w-5' />
+						<span className='sr-only'>Cart</span>
+						{cartCount > 0 && (
+							<span className='absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-sky-600 px-1 text-[10px] font-semibold text-white'>
+								{cartCount}
+							</span>
+						)}
+					</button>
 					{user ? (
 						<>
 							<Button

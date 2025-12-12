@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/store/cart";
 import { useRouter } from "next/navigation";
 import { notifyInfo, notifySuccess } from "@/lib/notify";
-import { BadgeCheck, Pencil, Phone, Rocket, ShieldCheck, Trash2 } from "lucide-react";
+import { BadgeCheck, Phone, Rocket, ShieldCheck } from "lucide-react";
 import { ProductImage } from "@/components/ProductImage";
+import { EditButton } from "@/components/EditButton";
+import { DeleteButton } from "@/components/DeleteButton";
 
 type ProductDetailProps = {
 	product: Product;
@@ -131,17 +133,14 @@ export function ProductDetail({ product, context = "storefront", onAdminEdit, on
 						</div>
 					) : (
 						<div className='mt-6 grid gap-3 sm:grid-cols-2'>
-							<Button type='button' className='rounded-2xl px-5' onClick={onAdminEdit}>
-								<Pencil className='h-4 w-4 mr-2' /> Edit device
-							</Button>
-							<Button
+							<EditButton type='button' className='rounded-2xl px-5' label='Edit device' onClick={onAdminEdit} />
+							<DeleteButton
 								type='button'
 								variant='outline'
-								className='rounded-2xl border border-rose-200 px-5 text-rose-600'
-								onClick={onAdminDelete}>
-								<Trash2 className='h-4 w-4 mr-2' />
-								Delete
-							</Button>
+								className='rounded-2xl border border-rose-200 px-5'
+								label='Delete device'
+								onClick={onAdminDelete}
+							/>
 						</div>
 					)}
 				</div>

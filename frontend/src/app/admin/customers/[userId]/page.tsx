@@ -10,6 +10,7 @@ import { notifyError, notifySuccess, notifyWarning } from "@/lib/notify";
 import { api } from "@/lib/api";
 import { useRouteGuard } from "@/lib/useRouteGuard";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { DeleteButton } from "@/components/DeleteButton";
 
 const ROLE_OPTIONS = [
 	{ value: "customer", label: "Customer" },
@@ -366,8 +367,6 @@ export default function AdminCustomerDetailPage() {
 				</section>
 
 				<aside className='space-y-6'>
-					
-
 					<section className='rounded-3xl border border-rose-200 bg-rose-50/80 p-6 text-rose-800 shadow-card'>
 						<h3 className='text-base font-semibold'>Danger zone</h3>
 						<p className='mt-2 text-sm text-rose-700'>Deleting removes access and related data.</p>
@@ -389,14 +388,13 @@ export default function AdminCustomerDetailPage() {
 								</p>
 							)}
 						</div>
-						<Button
-							type='button'
+						<DeleteButton
 							variant='outline'
-							className='mt-4 w-full rounded-2xl border-rose-400 text-rose-700 hover:bg-rose-100'
+							className='mt-4 w-full rounded-2xl border-rose-400 hover:bg-rose-100'
+							label={deleting ? "Deleting..." : "Delete user"}
 							onClick={handleDelete}
-							disabled={deleting}>
-							{deleting ? "Deleting..." : "Delete user"}
-						</Button>
+							disabled={deleting}
+						/>
 					</section>
 				</aside>
 			</form>

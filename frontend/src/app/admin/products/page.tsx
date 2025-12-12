@@ -19,6 +19,8 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { PaginationControls } from "@/components/PaginationControls";
 import { useRouteGuard } from "@/lib/useRouteGuard";
+import { EditButton } from "@/components/EditButton";
+import { DeleteButton } from "@/components/DeleteButton";
 
 const DATE_FILTERS = [
 	{ id: "all", label: "All time", days: null },
@@ -392,26 +394,24 @@ export default function AdminProducts() {
 													</td>
 													<td className='px-5 py-4 align-middle text-right'>
 														<div className='flex flex-wrap justify-end gap-2'>
-															<Button
-																variant='ghost'
-																size='sm'
-																className='rounded-full px-4 text-slate-600 hover:bg-slate-50'
+															<EditButton
+																className='rounded-full'
+																label='Edit device'
 																onClick={(event) => {
 																	event.stopPropagation();
 																	openEditor(item);
-																}}>
-																Edit
-															</Button>
-															<Button
+																}}
+															/>
+															<DeleteButton
 																variant='outline'
 																size='sm'
-																className='rounded-full border border-rose-200 px-4 text-rose-600 hover:bg-rose-50'
+																label='Delete device'
+																className='rounded-full'
 																onClick={(event) => {
 																	event.stopPropagation();
 																	requestDelete(item);
-																}}>
-																Delete
-															</Button>
+																}}
+															/>
 														</div>
 													</td>
 												</tr>
