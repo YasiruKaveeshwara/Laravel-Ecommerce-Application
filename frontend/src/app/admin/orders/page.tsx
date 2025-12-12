@@ -1,26 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowUpRight, Loader2, PackageSearch, RefreshCcw, Search, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PaginationControls } from "@/components/PaginationControls";
 import { Input } from "@/components/ui/input";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { api } from "@/lib/api";
 import { handleError } from "@/lib/handleError";
-import type { Order, PaginatedResponse, PaginationMeta } from "@/types/order";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { normalizePaginatedResponse, summarizePagination } from "@/lib/pagination";
 import { useRouteGuard } from "@/lib/useRouteGuard";
+import type { Order } from "@/types/order";
+import type { PaginationMeta } from "@/types/pagination";
+
+const PER_PAGE = 20;
 
 export default function AdminOrdersPage() {
 	const guard = useRouteGuard({ requireAuth: true, requireRole: "administrator" });
-	const router = useRouter();
 	const [search, setSearch] = useState("");
 	const [activeSearch, setActiveSearch] = useState("");
 	const [orders, setOrders] = useState<Order[]>([]);
 	const [meta, setMeta] = useState<PaginationMeta | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const pageRef = useRef(1);
 
 	useEffect(() => {
 		const id = setTimeout(() => setActiveSearch(search.trim()), 400);
@@ -28,19 +32,24 @@ export default function AdminOrdersPage() {
 	}, [search]);
 
 	const loadOrders = useCallback(
-		async (queryOverride?: string) => {
+		async (queryOverride?: string, overridePage?: number) => {
 			setLoading(true);
 			setError(null);
 			try {
+				const pageToFetch = overridePage ?? pageRef.current ?? 1;
 				const searchTerm = (queryOverride ?? activeSearch)?.trim() || undefined;
-				const response: PaginatedResponse<Order> = await api("/admin/orders", {
+				const response = await api("/admin/orders", {
 					query: {
-						per_page: 50,
+						per_page: PER_PAGE,
 						q: searchTerm,
+						page: pageToFetch,
 					},
 				});
-				setOrders(response?.data || []);
-				setMeta(response?.meta || null);
+				const normalized = normalizePaginatedResponse<Order>(response);
+				setOrders(normalized.items);
+				setMeta(normalized.meta);
+				const resolvedPage = normalized.meta?.current_page ?? pageToFetch;
+				pageRef.current = resolvedPage;
 			} catch (err: unknown) {
 				const fallback = "Unable to load admin orders.";
 				const message = handleError(err, { title: "Admin orders unavailable", fallbackMessage: fallback });
@@ -60,7 +69,8 @@ export default function AdminOrdersPage() {
 	const resetFilters = () => {
 		setSearch("");
 		setActiveSearch("");
-		loadOrders("");
+		pageRef.current = 1;
+		loadOrders("", 1);
 	};
 
 	const stats = useMemo(() => {
@@ -72,6 +82,19 @@ export default function AdminOrdersPage() {
 		const revenue = orders.reduce((sum, order) => sum + toNumber(order.grand_total), 0);
 		return { total, processing, revenue };
 	}, [orders]);
+
+	const paginationSummary = useMemo(
+		() => summarizePagination(meta, { fallbackCount: orders.length, pageSize: PER_PAGE }),
+		[meta, orders.length]
+	);
+
+	const paginationCopy = paginationSummary.hasResults
+		? `Showing ${paginationSummary.from}-${paginationSummary.to} of ${paginationSummary.total} orders`
+		: "Showing 0 orders";
+
+	const paginationPositionCopy = paginationSummary.hasResults
+		? `Page ${paginationSummary.currentPage} of ${paginationSummary.lastPage}`
+		: "No pages";
 
 	if (guard.pending) {
 		return (
@@ -94,14 +117,6 @@ export default function AdminOrdersPage() {
 					<p className='text-sm text-muted'>Keep fulfillment, customer receipts, and revenue aligned.</p>
 				</div>
 				<div className='ml-auto flex flex-wrap items-center gap-3'>
-					<Button
-						variant='ghost'
-						className='rounded-2xl border border-border px-4'
-						type='button'
-						onClick={resetFilters}
-						disabled={loading}>
-						Reset filters
-					</Button>
 					<Button className='rounded-2xl px-5' type='button' onClick={() => loadOrders()} disabled={loading}>
 						<RefreshCcw className='mr-2 h-4 w-4' /> Refresh list
 					</Button>
@@ -134,7 +149,8 @@ export default function AdminOrdersPage() {
 					className='flex flex-wrap items-center gap-3 border-b border-border/80 pb-4'
 					onSubmit={(event) => {
 						event.preventDefault();
-						loadOrders(search.trim());
+						pageRef.current = 1;
+						loadOrders(search.trim(), 1);
 					}}>
 					<div className='relative flex-1 min-w-[220px]'>
 						<Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted' />
@@ -150,12 +166,28 @@ export default function AdminOrdersPage() {
 					</Button>
 				</form>
 
+				<div className='mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted'>
+					<span>
+						{paginationCopy}
+						{paginationSummary.hasResults && <span className='text-slate-400'> · {paginationPositionCopy}</span>}
+					</span>
+					<Button
+						variant='ghost'
+						className='rounded-2xl border border-border px-4'
+						type='button'
+						onClick={resetFilters}
+						disabled={loading}>
+						Reset filters
+					</Button>
+				</div>
+
 				{error && (
 					<div className='mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700'>
 						{error}
 
 						<p className='mt-4 text-sm text-muted'>
-							Showing {orders.length} of {meta?.total ?? orders.length} orders
+							{paginationCopy}
+							{paginationSummary.hasResults && <span className='text-slate-400'> · {paginationPositionCopy}</span>}
 						</p>
 					</div>
 				)}
@@ -167,59 +199,72 @@ export default function AdminOrdersPage() {
 						className='mt-6 bg-white'
 					/>
 				) : (
-					<div className='mt-6 overflow-hidden rounded-3xl border border-border'>
-						<table className='w-full text-left text-sm'>
-							<thead className='bg-slate-50 text-slate-500'>
-								<tr>
-									<th className='px-5 py-3 font-medium'>Order</th>
-									<th className='px-5 py-3 font-medium'>Customer</th>
-									<th className='px-5 py-3 font-medium'>Total</th>
-									<th className='px-5 py-3 font-medium'>Status</th>
-									<th className='px-5 py-3 font-medium'>Placed</th>
-									<th className='px-5 py-3 font-medium text-right'>Action</th>
-								</tr>
-							</thead>
-							<tbody>
-								{loading && orders.length > 0 ? (
+					<>
+						<div className='mt-6 overflow-hidden rounded-3xl border border-border'>
+							<table className='w-full text-left text-sm'>
+								<thead className='bg-slate-50 text-slate-500'>
 									<tr>
-										<td colSpan={6} className='px-5 py-10 text-center text-muted'>
-											<Loader2 className='mr-2 inline h-4 w-4 animate-spin' /> Syncing orders…
-										</td>
+										<th className='px-5 py-3 font-medium'>Order</th>
+										<th className='px-5 py-3 font-medium'>Customer</th>
+										<th className='px-5 py-3 font-medium'>Total</th>
+										<th className='px-5 py-3 font-medium'>Status</th>
+										<th className='px-5 py-3 font-medium'>Placed</th>
+										<th className='px-5 py-3 font-medium text-right'>Action</th>
 									</tr>
-								) : orders.length === 0 ? (
-									<tr>
-										<td colSpan={6} className='px-5 py-10 text-center text-muted'>
-											No orders match this filter.
-										</td>
-									</tr>
-								) : (
-									orders.map((order) => (
-										<tr key={order.id} className='border-t border-border/80'>
-											<td className='px-5 py-4 text-slate-900 font-semibold'>#{formatOrderNumber(order.id)}</td>
-											<td className='px-5 py-4 text-slate-600'>
-												<div className='font-semibold text-slate-900'>
-													{order.first_name} {order.last_name}
-												</div>
-												<div className='text-xs text-muted'>{order.email}</div>
-											</td>
-											<td className='px-5 py-4 font-semibold text-slate-900'>{formatCurrency(order.grand_total)}</td>
-											<td className='px-5 py-4'>
-												<StatusBadge status={order.status} />
-											</td>
-											<td className='px-5 py-4 text-slate-600'>{formatDate(order.created_at)}</td>
-											<td className='px-5 py-4 text-right'>
-												<Button asChild variant='ghost' className='rounded-2xl px-3 text-slate-700 hover:text-sky-600'>
-													<Link href={`/admin/orders/${order.id}`}>
-														Inspect <ArrowUpRight className='ml-2 h-4 w-4' />
-													</Link>
-												</Button>
+								</thead>
+								<tbody>
+									{loading && orders.length > 0 ? (
+										<tr>
+											<td colSpan={6} className='px-5 py-10 text-center text-muted'>
+												<Loader2 className='mr-2 inline h-4 w-4 animate-spin' /> Syncing orders…
 											</td>
 										</tr>
-									))
-								)}
-							</tbody>
-						</table>
-					</div>
+									) : orders.length === 0 ? (
+										<tr>
+											<td colSpan={6} className='px-5 py-10 text-center text-muted'>
+												No orders match this filter.
+											</td>
+										</tr>
+									) : (
+										orders.map((order) => (
+											<tr key={order.id} className='border-t border-border/80'>
+												<td className='px-5 py-4 text-slate-900 font-semibold'>#{formatOrderNumber(order.id)}</td>
+												<td className='px-5 py-4 text-slate-600'>
+													<div className='font-semibold text-slate-900'>
+														{order.first_name} {order.last_name}
+													</div>
+													<div className='text-xs text-muted'>{order.email}</div>
+												</td>
+												<td className='px-5 py-4 font-semibold text-slate-900'>{formatCurrency(order.grand_total)}</td>
+												<td className='px-5 py-4'>
+													<StatusBadge status={order.status} />
+												</td>
+												<td className='px-5 py-4 text-slate-600'>{formatDate(order.created_at)}</td>
+												<td className='px-5 py-4 text-right'>
+													<Button
+														asChild
+														variant='ghost'
+														className='rounded-2xl px-3 text-slate-700 hover:text-sky-600'>
+														<Link href={`/admin/orders/${order.id}`}>
+															Inspect <ArrowUpRight className='ml-2 h-4 w-4' />
+														</Link>
+													</Button>
+												</td>
+											</tr>
+										))
+									)}
+								</tbody>
+							</table>
+						</div>
+						<PaginationControls
+							meta={meta}
+							itemsCount={orders.length}
+							pageSize={PER_PAGE}
+							loading={loading}
+							entityLabel='orders'
+							onPageChange={(page) => loadOrders(undefined, page)}
+						/>
+					</>
 				)}
 			</section>
 		</div>

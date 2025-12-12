@@ -1,16 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Search } from "lucide-react";
+import Link from "next/link";
+import { Pencil, Search, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { notifyInfo } from "@/lib/notify";
+import { notifySuccess } from "@/lib/notify";
 import { handleError } from "@/lib/handleError";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { summarizePagination } from "@/lib/pagination";
+import { normalizePaginatedResponse, summarizePagination } from "@/lib/pagination";
 import { PaginationControls } from "@/components/PaginationControls";
 import { useRouteGuard } from "@/lib/useRouteGuard";
+import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 
 type AdminUser = {
 	id: string;
@@ -29,18 +31,13 @@ type PaginationMeta = {
 	last_page?: number;
 };
 
-type UsersResponse = {
-	data?: AdminUser[];
-	meta?: PaginationMeta;
-};
-
 const ROLE_LABEL: Record<AdminUser["role"], string> = {
 	administrator: "Admin",
 	customer: "Customer",
 };
 
 const relativeTimeFormatter = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
-const PER_PAGE = 100;
+const PER_PAGE = 20;
 
 type AdminFilters = {
 	search: string;
@@ -59,6 +56,8 @@ export default function AdminCustomers() {
 	const [appliedFilters, setAppliedFilters] = useState<AdminFilters>(() => createDefaultFilters());
 	const appliedFiltersRef = useRef(appliedFilters);
 	const pageRef = useRef(1);
+	const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
+	const [deleteLoading, setDeleteLoading] = useState(false);
 
 	useEffect(() => {
 		appliedFiltersRef.current = appliedFilters;
@@ -71,7 +70,7 @@ export default function AdminCustomers() {
 			const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 			const activeFilters = overrideFilters ?? appliedFiltersRef.current;
 			const pageToFetch = overridePage ?? pageRef.current;
-			const response: UsersResponse = await api("/users", {
+			const response = await api("/users", {
 				authToken: token,
 				query: {
 					per_page: PER_PAGE,
@@ -80,9 +79,10 @@ export default function AdminCustomers() {
 					page: pageToFetch,
 				},
 			});
-			setUsers(response?.data || []);
-			setMeta(response?.meta || null);
-			const resolvedPage = response?.meta?.current_page ?? pageToFetch;
+			const normalized = normalizePaginatedResponse<AdminUser>(response);
+			setUsers(normalized.items);
+			setMeta(normalized.meta);
+			const resolvedPage = normalized.meta?.current_page ?? pageToFetch;
 			pageRef.current = resolvedPage;
 		} catch (err: unknown) {
 			const message = handleError(err, {
@@ -122,6 +122,10 @@ export default function AdminCustomers() {
 		() => summarizePagination(meta, { fallbackCount: users.length, pageSize: PER_PAGE }),
 		[meta, users.length]
 	);
+
+	const paginationPositionCopy = paginationSummary.hasResults
+		? `Page ${paginationSummary.currentPage} of ${paginationSummary.lastPage}`
+		: "No pages";
 
 	const filtersDirty = useMemo(() => {
 		return filters.search !== appliedFilters.search || filters.role !== appliedFilters.role;
@@ -210,7 +214,10 @@ export default function AdminCustomers() {
 					</div>
 				</div>
 				<div className='mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted'>
-					<span>{paginationCopy}</span>
+					<span>
+						{paginationCopy}
+						{paginationSummary.hasResults && <span className='text-slate-400'> · {paginationPositionCopy}</span>}
+					</span>
 					<div className='flex items-center gap-3'>
 						<Button variant='ghost' className='rounded-2xl border border-border px-4' onClick={resetFilters}>
 							Reset filters
@@ -226,7 +233,7 @@ export default function AdminCustomers() {
 				<div className='rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700'>{error}</div>
 			)}
 
-			<div className='rounded-3xl border border-border bg-gradient-to-b from-white via-white to-slate-50 shadow-card'>
+			<div className='rounded-3xl border border-border bg-linear-to-b from-white via-white to-slate-50 shadow-card'>
 				{emptyStateLoading ? (
 					<LoadingScreen
 						message='Loading customer roster...'
@@ -271,7 +278,7 @@ export default function AdminCustomers() {
 													className='align-middle rounded-3xl border border-border/70 bg-white/90 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-xl'>
 													<td className='px-5 py-4 align-middle first:rounded-l-3xl'>
 														<div className='flex items-center gap-4'>
-															<div className='flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 text-base font-semibold text-slate-700'>
+															<div className='flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-slate-100 to-slate-200 text-base font-semibold text-slate-700'>
 																{getInitials(user)}
 															</div>
 															<div>
@@ -296,12 +303,21 @@ export default function AdminCustomers() {
 														)}
 													</td>
 													<td className='px-5 py-4 align-middle text-center'>
-														<Button
-															variant='outline'
-															className='rounded-full border border-border/70 px-4 text-slate-700 hover:bg-slate-50'
-															onClick={() => notifyInfo("Management tools on the way", "Stay tuned.")}>
-															Manage
-														</Button>
+														<div className='flex items-center justify-center gap-2'>
+															<Link
+																href={`/admin/customers/${user.id}`}
+																className='inline-flex items-center justify-center rounded-full border border-border/70 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-slate-50'>
+																<Pencil className='h-4 w-4 mr-2' />
+																Edit
+															</Link>
+															<Button
+																variant='ghost'
+																size='icon'
+																className='rounded-full text-rose-600 hover:bg-rose-50'
+																onClick={() => setDeleteTarget(user)}>
+																<Trash2 className='h-4 w-4' /> Delete
+															</Button>
+														</div>
 													</td>
 												</tr>
 											);
@@ -317,6 +333,30 @@ export default function AdminCustomers() {
 							loading={loading}
 							entityLabel='accounts'
 							onPageChange={(page) => loadCustomers(undefined, page)}
+						/>
+						<ConfirmDialog
+							open={Boolean(deleteTarget)}
+							title='Delete user'
+							description={`This will permanently remove ${deleteTarget?.email}.`}
+							confirmLabel='Delete'
+							cancelLabel='Cancel'
+							confirmTone='danger'
+							confirmLoading={deleteLoading}
+							onCancel={() => setDeleteTarget(null)}
+							onConfirm={async () => {
+								if (!deleteTarget) return;
+								setDeleteLoading(true);
+								try {
+									await api(`/users/${deleteTarget.id}`, { method: "DELETE" });
+									setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+									notifySuccess("User deleted", "The account has been removed.");
+								} catch (err: unknown) {
+									handleError(err, { title: "Delete failed", fallbackMessage: "Unable to delete this user." });
+								} finally {
+									setDeleteLoading(false);
+									setDeleteTarget(null);
+								}
+							}}
 						/>
 					</>
 				)}
