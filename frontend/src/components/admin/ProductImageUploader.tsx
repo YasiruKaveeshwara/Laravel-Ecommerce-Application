@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useId, useState, type ChangeEvent, type DragEvent } from "react";
 import { Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -91,7 +92,14 @@ export function ProductImageUploader({
 				<p className='mt-4 text-lg font-semibold text-slate-900'>{ctaText}</p>
 				<p className='text-sm text-muted'>{isDragging ? "Release to drop your hero art." : description}</p>
 				{preview && (
-					<img src={preview} alt='Preview' className='mx-auto mt-4 h-64 w-full max-w-xl rounded-3xl object-cover' />
+					<Image
+						src={preview}
+						alt='Preview'
+						width={640}
+						height={640}
+						unoptimized
+						className='mx-auto mt-4 h-64 w-full max-w-xl rounded-3xl object-cover'
+					/>
 				)}
 				<p className='mt-4 text-xs text-muted'>{helperText}</p>
 				<p className='mt-2 text-xs font-semibold text-sky-600'>{note}</p>

@@ -15,43 +15,49 @@ import { useRouteGuard } from "@/lib/useRouteGuard";
 
 export default function EditProductPage() {
 	const router = useRouter();
-	const [product, setProduct] = useState<Product | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [statusMessage, setStatusMessage] = useState<string | null>(null);
 	const guard = useRouteGuard({ requireAuth: true, requireRole: "administrator" });
-
-	if (guard.pending) {
-		return (
-			<div className='mx-auto max-w-3xl px-4 py-24'>
-				<LoadingScreen message='Checking access' description='Verifying your administrator session.' />
-			</div>
-		);
-	}
-
-	if (!guard.allowed) return null;
+	const [selection] = useState(() => readProductSelection("admin"));
+	const [product, setProduct] = useState<Product | null>(() => selection?.snapshot ?? null);
+	const [loading, setLoading] = useState(() => Boolean(selection));
+	const [statusMessage, setStatusMessage] = useState<string | null>(() =>
+		selection ? null : "Select a device from inventory to edit its details."
+	);
 
 	useEffect(() => {
-		const stored = readProductSelection("admin");
-		if (!stored) {
-			const fallback = "Select a device from inventory to edit its details.";
-			setStatusMessage(fallback);
-			setLoading(false);
+		if (guard.pending || !guard.allowed || !selection) {
 			return;
 		}
 
-		setLoading(true);
-		api(`/admin/products/${stored.id}`)
-			.then((res: Product) => {
-				setProduct(res);
-				setStatusMessage(null);
-			})
-			.catch((error: unknown) => {
+		let cancelled = false;
+		const fetchProduct = async () => {
+			try {
+				const response: Product = await api(`/admin/products/${selection.id}`);
+				if (!cancelled) {
+					setProduct(response);
+					setStatusMessage(null);
+				}
+			} catch (error: unknown) {
+				if (cancelled) return;
 				const fallback = "Unable to load that device for editing.";
 				setStatusMessage(fallback);
 				handleError(error, { title: "Product load failed", fallbackMessage: fallback });
-			})
-			.finally(() => setLoading(false));
-	}, []);
+			} finally {
+				if (!cancelled) {
+					setLoading(false);
+				}
+			}
+		};
+		fetchProduct();
+		return () => {
+			cancelled = true;
+		};
+	}, [guard.pending, guard.allowed, selection]);
+
+	useEffect(() => {
+		if (selection || guard.pending || !guard.allowed) return;
+		const fallback = "Select a device from inventory to edit its details.";
+		handleError(new Error(fallback), { title: "No device selected", fallbackMessage: fallback });
+	}, [selection, guard.pending, guard.allowed]);
 
 	const initialValues = useMemo(() => {
 		if (!product) {
@@ -95,6 +101,16 @@ export default function EditProductPage() {
 			handleError(error, { title: "Update failed", fallbackMessage: "Unable to save product changes." });
 		}
 	};
+
+	if (guard.pending) {
+		return (
+			<div className='mx-auto max-w-3xl px-4 py-24'>
+				<LoadingScreen message='Checking access' description='Verifying your administrator session.' />
+			</div>
+		);
+	}
+
+	if (!guard.allowed) return null;
 
 	const goBack = () => router.back();
 

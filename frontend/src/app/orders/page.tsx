@@ -55,6 +55,25 @@ export default function OrdersPage() {
 		loadOrders();
 	}, [initialized, user, loadOrders]);
 
+	const stats = useMemo(() => {
+		if (!orders.length) {
+			return {
+				totalOrders: 0,
+				totalSpend: 0,
+				avgTicket: 0,
+				lastOrder: null as string | null,
+			};
+		}
+		const totalSpend = orders.reduce((sum, order) => sum + toNumber(order.grand_total), 0);
+		const lastOrder = orders[0]?.created_at ?? orders[orders.length - 1]?.created_at ?? null;
+		return {
+			totalOrders: orders.length,
+			totalSpend,
+			avgTicket: totalSpend / orders.length,
+			lastOrder,
+		};
+	}, [orders]);
+
 	if (!initialized) {
 		return (
 			<div className='mx-auto max-w-3xl px-4 py-24'>
@@ -78,25 +97,6 @@ export default function OrdersPage() {
 			</div>
 		);
 	}
-
-	const stats = useMemo(() => {
-		if (!orders.length) {
-			return {
-				totalOrders: 0,
-				totalSpend: 0,
-				avgTicket: 0,
-				lastOrder: null as string | null,
-			};
-		}
-		const totalSpend = orders.reduce((sum, order) => sum + toNumber(order.grand_total), 0);
-		const lastOrder = orders[0]?.created_at ?? orders[orders.length - 1]?.created_at ?? null;
-		return {
-			totalOrders: orders.length,
-			totalSpend,
-			avgTicket: totalSpend / orders.length,
-			lastOrder,
-		};
-	}, [orders]);
 
 	return (
 		<div className='mx-auto space-y-6 '>

@@ -29,7 +29,6 @@ const NAV_LINKS: Record<Audience, NavItem[]> = {
 		{ label: "Inventory", href: "/admin/products", requiresAdmin: true },
 		{ label: "Orders", href: "/admin/orders", requiresAdmin: true },
 		{ label: "Users", href: "/admin/customers", requiresAdmin: true },
-		
 	],
 };
 
@@ -115,12 +114,16 @@ export function Navbar() {
 	}, [audience]);
 
 	useLayoutEffect(() => {
-		updateIndicator();
+		const frame = requestAnimationFrame(() => updateIndicator());
+		return () => cancelAnimationFrame(frame);
 	}, [updateIndicator]);
 
 	useEffect(() => {
-		window.addEventListener("resize", updateIndicator);
-		return () => window.removeEventListener("resize", updateIndicator);
+		const handleResize = () => {
+			requestAnimationFrame(() => updateIndicator());
+		};
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
 	}, [updateIndicator]);
 
 	const handleNavigate = (item: NavItem) => {

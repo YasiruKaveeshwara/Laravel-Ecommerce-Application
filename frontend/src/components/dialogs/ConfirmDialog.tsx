@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,13 +35,7 @@ export function ConfirmDialog({
 	onCancel,
 	disableOutsideClose = false,
 }: ConfirmDialogProps) {
-	const [mounted, setMounted] = useState(false);
-
-	useEffect(() => {
-		setMounted(true);
-	}, []);
-
-	if (!mounted || !open) {
+	if (typeof document === "undefined" || !open) {
 		return null;
 	}
 

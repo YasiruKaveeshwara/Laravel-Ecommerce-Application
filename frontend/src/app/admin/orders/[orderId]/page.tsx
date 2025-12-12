@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, RefreshCcw } from "lucide-react";
@@ -15,8 +14,8 @@ import { useRouteGuard } from "@/lib/useRouteGuard";
 export default function AdminOrderDetailPage() {
 	const params = useParams<{ orderId: string }>();
 	const orderId = Array.isArray(params?.orderId) ? params.orderId[0] : params?.orderId;
-	const router = useRouter();
 	const guard = useRouteGuard({ requireAuth: true, requireRole: "administrator" });
+	const router = useRouter();
 
 	const [order, setOrder] = useState<Order | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -75,10 +74,12 @@ export default function AdminOrderDetailPage() {
 					<p className='text-sm text-muted'>Detailed ledger view for #{formatOrderNumber(orderId)}</p>
 				</div>
 				<div className='ml-auto flex flex-wrap items-center gap-3'>
-					<Button variant='ghost' className='rounded-2xl border border-border px-4' asChild>
-						<Link href='/admin/orders'>
-							<ArrowLeft className='mr-2 h-4 w-4' /> Back to list
-						</Link>
+					<Button
+						variant='ghost'
+						className='rounded-2xl border border-border px-4'
+						onClick={() => router.push("/admin/orders")}
+					>
+						<ArrowLeft className='mr-2 h-4 w-4' /> Back to list
 					</Button>
 					<Button variant='outline' className='rounded-2xl px-4' onClick={loadOrder} disabled={loading}>
 						<RefreshCcw className='mr-2 h-4 w-4' /> Refresh data

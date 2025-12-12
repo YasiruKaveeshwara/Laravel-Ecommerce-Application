@@ -11,35 +11,35 @@ export function normalizePaginatedResponse<T>(payload: unknown): NormalizedPagin
 		return { items: [], meta: null, links: null };
 	}
 
-	const anyPayload = payload as any;
-
 	if (Array.isArray(payload)) {
 		return { items: payload as T[], meta: null, links: null };
 	}
 
-	if (Array.isArray(anyPayload?.data)) {
-		if (anyPayload.meta) {
+	const recordPayload = isRecord(payload) ? payload : null;
+
+	if (recordPayload && Array.isArray(recordPayload.data)) {
+		if (recordPayload.meta) {
 			return {
-				items: anyPayload.data as T[],
-				meta: anyPayload.meta as PaginationMeta,
-				links: anyPayload.links ?? null,
+				items: recordPayload.data as T[],
+				meta: recordPayload.meta as PaginationMeta,
+				links: (recordPayload.links as Record<string, unknown> | null | undefined) ?? null,
 			};
 		}
 
 		const legacyMeta: PaginationMeta = {
-			current_page: anyPayload.current_page,
-			last_page: anyPayload.last_page,
-			per_page: anyPayload.per_page,
-			total: anyPayload.total,
-			from: anyPayload.from,
-			to: anyPayload.to,
+			current_page: toNumber(recordPayload.current_page),
+			last_page: toNumber(recordPayload.last_page),
+			per_page: toNumber(recordPayload.per_page),
+			total: toNumber(recordPayload.total),
+			from: toNumber(recordPayload.from),
+			to: toNumber(recordPayload.to),
 		};
 		const hasLegacyMeta = Object.values(legacyMeta).some((value) => typeof value !== "undefined" && value !== null);
 
 		return {
-			items: anyPayload.data as T[],
+			items: recordPayload.data as T[],
 			meta: hasLegacyMeta ? legacyMeta : null,
-			links: anyPayload.links ?? null,
+			links: (recordPayload.links as Record<string, unknown> | null | undefined) ?? null,
 		};
 	}
 
@@ -89,4 +89,12 @@ export function summarizePagination(meta?: PaginationMeta | null, options: Summa
 		hasResults,
 		hasMultiplePages,
 	};
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function toNumber(value: unknown): number | undefined {
+	return typeof value === "number" ? value : undefined;
 }

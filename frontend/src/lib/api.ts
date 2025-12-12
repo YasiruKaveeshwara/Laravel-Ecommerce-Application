@@ -52,10 +52,8 @@ export async function api(path: string, opts: ApiOptions = {}) {
 				? (payload as { error?: { message?: string; type?: string; details?: Record<string, unknown> } }).error ?? null
 				: null;
 
-		const message =
-			envelope?.message ||
-			(payload && typeof payload === "object" && "message" in payload ? String((payload as any).message) : undefined) ||
-			`Request failed (${res.status})`;
+		const fallbackMessage = extractMessage(payload);
+		const message = envelope?.message || fallbackMessage || `Request failed (${res.status})`;
 
 		throw new ApiError(message, res.status, envelope?.type, envelope?.details, payload ?? undefined);
 	}
@@ -70,4 +68,15 @@ async function safeJson(res: Response) {
 	} catch {
 		return text as unknown;
 	}
+}
+
+function extractMessage(payload: unknown): string | undefined {
+	if (!payload || typeof payload !== "object") {
+		return undefined;
+	}
+	if ("message" in payload) {
+		const messageValue = (payload as { message?: unknown }).message;
+		return typeof messageValue === "string" ? messageValue : undefined;
+	}
+	return undefined;
 }

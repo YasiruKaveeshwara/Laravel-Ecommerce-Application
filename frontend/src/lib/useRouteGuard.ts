@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/store/auth";
 
@@ -16,7 +16,6 @@ export function useRouteGuard({ requireAuth = false, requireRole, redirectTo }: 
 	const user = useAuth((s) => s.user);
 	const hydrate = useAuth((s) => s.hydrate);
 	const initialized = useAuth((s) => s.initialized);
-	const [redirecting, setRedirecting] = useState(false);
 
 	useEffect(() => {
 		hydrate();
@@ -28,13 +27,11 @@ export function useRouteGuard({ requireAuth = false, requireRole, redirectTo }: 
 		const redirectPath = redirectTo ?? `/login?redirect=${encodeURIComponent(pathname)}`;
 
 		if (requireAuth && !user) {
-			setRedirecting(true);
 			router.replace(redirectPath);
 			return;
 		}
 
 		if (requireRole && user && user.role !== requireRole) {
-			setRedirecting(true);
 			router.replace("/");
 		}
 	}, [initialized, user, requireAuth, requireRole, router, pathname, redirectTo]);
@@ -46,5 +43,6 @@ export function useRouteGuard({ requireAuth = false, requireRole, redirectTo }: 
 		return true;
 	}, [initialized, requireAuth, requireRole, user]);
 
-	return { allowed, pending: !initialized || redirecting };
+	const pending = !initialized || (!allowed && (requireAuth || Boolean(requireRole)));
+	return { allowed, pending };
 }

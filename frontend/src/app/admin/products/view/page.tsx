@@ -16,9 +16,47 @@ import { useRouteGuard } from "@/lib/useRouteGuard";
 export default function AdminProductViewPage() {
 	const router = useRouter();
 	const guard = useRouteGuard({ requireAuth: true, requireRole: "administrator" });
-	const [product, setProduct] = useState<Product | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [statusMessage, setStatusMessage] = useState<string | null>(null);
+	const [selection] = useState(() => readProductSelection("admin"));
+	const [product, setProduct] = useState<Product | null>(() => selection?.snapshot ?? null);
+	const [loading, setLoading] = useState(() => Boolean(selection));
+	const [statusMessage, setStatusMessage] = useState<string | null>(() =>
+		selection ? null : "Select a device from inventory to view its details."
+	);
+
+	useEffect(() => {
+		if (!selection || guard.pending || !guard.allowed) return;
+		let cancelled = false;
+		const fetchProduct = async () => {
+			try {
+				const response: Product = await api("/admin/products/detail", {
+					method: "POST",
+					body: { product_id: selection.id },
+				});
+				if (!cancelled) {
+					setProduct(response);
+				}
+			} catch (err: unknown) {
+				if (cancelled) return;
+				const fallback = "We couldn't refresh that device. Try selecting it again from inventory.";
+				setStatusMessage(fallback);
+				handleError(err, { title: "Product load failed", fallbackMessage: fallback });
+			} finally {
+				if (!cancelled) {
+					setLoading(false);
+				}
+			}
+		};
+		fetchProduct();
+		return () => {
+			cancelled = true;
+		};
+	}, [selection, guard.pending, guard.allowed]);
+
+	useEffect(() => {
+		if (selection || guard.pending || !guard.allowed) return;
+		const fallback = "Select a device from inventory to view its details.";
+		handleError(new Error(fallback), { title: "No device selected", fallbackMessage: fallback });
+	}, [selection, guard.pending, guard.allowed]);
 
 	if (guard.pending) {
 		return (
@@ -29,28 +67,6 @@ export default function AdminProductViewPage() {
 	}
 
 	if (!guard.allowed) return null;
-
-	useEffect(() => {
-		const stored = readProductSelection("admin");
-		if (!stored) {
-			const fallback = "Select a device from inventory to view its details.";
-			setStatusMessage(fallback);
-			handleError(new Error(fallback), { title: "No device selected", fallbackMessage: fallback });
-			setLoading(false);
-			return;
-		}
-		if (stored.snapshot) {
-			setProduct(stored.snapshot);
-		}
-		api("/admin/products/detail", { method: "POST", body: { product_id: stored.id } })
-			.then((res: Product) => setProduct(res))
-			.catch((err: unknown) => {
-				const fallback = "We couldn't refresh that device. Try selecting it again from inventory.";
-				setStatusMessage(fallback);
-				handleError(err, { title: "Product load failed", fallbackMessage: fallback });
-			})
-			.finally(() => setLoading(false));
-	}, []);
 
 	const goBack = () => {
 		clearProductSelection();

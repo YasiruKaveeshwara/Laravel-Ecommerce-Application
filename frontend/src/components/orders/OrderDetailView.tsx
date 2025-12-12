@@ -74,7 +74,7 @@ export function OrderDetailView({ order, context = "customer" }: { order: Order;
 				</div>
 				<p className='mt-3 text-sm text-slate-600'>{statusMeta.description}</p>
 				<div className='mt-5 grid gap-3 md:grid-cols-3'>
-					{timeline.map((step, index) => (
+					{timeline.map((step) => (
 						<div
 							key={step.label}
 							className={cn(
@@ -189,7 +189,6 @@ function LineItem({ item }: { item: OrderItem }) {
 					rounded='rounded-2xl'
 				/>
 			</div>
-			import {ProductImage} from "@/components/ProductImage";
 			<div className='flex-1 min-w-[200px]'>
 				<p className='text-sm font-semibold text-slate-900'>{item.product_name}</p>
 				{item.product_brand && <p className='text-xs text-muted'>{item.product_brand}</p>}

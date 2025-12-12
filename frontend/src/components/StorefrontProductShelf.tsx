@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { ProductGallery } from "@/components/ProductGallery";
 import { api } from "@/lib/api";
 import { normalizePaginatedResponse } from "@/lib/pagination";

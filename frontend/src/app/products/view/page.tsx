@@ -13,31 +13,44 @@ import { handleError } from "@/lib/handleError";
 
 export default function ProductViewPage() {
 	const router = useRouter();
-	const [product, setProduct] = useState<Product | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [statusMessage, setStatusMessage] = useState<string | null>(null);
+	const [selection] = useState(() => readProductSelection("storefront"));
+	const [product, setProduct] = useState<Product | null>(() => selection?.snapshot ?? null);
+	const [loading, setLoading] = useState(() => Boolean(selection));
+	const [statusMessage, setStatusMessage] = useState<string | null>(() =>
+		selection ? null : "Select a device from the catalog to view its details."
+	);
 
 	useEffect(() => {
-		const stored = readProductSelection("storefront");
-		if (!stored) {
-			const fallback = "Select a device from the catalog to view its details.";
-			setStatusMessage(fallback);
-			handleError(new Error(fallback), { title: "No device selected", fallbackMessage: fallback });
-			setLoading(false);
-			return;
-		}
-		if (stored.snapshot) {
-			setProduct(stored.snapshot);
-		}
-		api("/products/detail", { method: "POST", body: { product_id: stored.id } })
-			.then((res: Product) => setProduct(res))
-			.catch((err: unknown) => {
+		if (selection) return;
+		const fallback = "Select a device from the catalog to view its details.";
+		handleError(new Error(fallback), { title: "No device selected", fallbackMessage: fallback });
+	}, [selection]);
+
+	useEffect(() => {
+		if (!selection) return;
+		let cancelled = false;
+		const fetchProduct = async () => {
+			try {
+				const response: Product = await api("/products/detail", { method: "POST", body: { product_id: selection.id } });
+				if (!cancelled) {
+					setProduct(response);
+				}
+			} catch (err: unknown) {
+				if (cancelled) return;
 				const fallback = "We couldn't refresh that device. Try again from the catalog.";
 				setStatusMessage(fallback);
 				handleError(err, { title: "Product load failed", fallbackMessage: fallback });
-			})
-			.finally(() => setLoading(false));
-	}, []);
+			} finally {
+				if (!cancelled) {
+					setLoading(false);
+				}
+			}
+		};
+		fetchProduct();
+		return () => {
+			cancelled = true;
+		};
+	}, [selection]);
 
 	const goBack = () => {
 		clearProductSelection();
