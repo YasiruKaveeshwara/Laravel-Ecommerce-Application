@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Frontend (Next.js)
 
-## Getting Started
+This is the Pulse Mobile storefront and admin backoffice UI. It consumes the Laravel API and implements authentication, cart/checkout, profile management, and admin tooling for products, orders, and users.
 
-First, run the development server:
+### Setup
 
-```bash
+```
+cd frontend
+npm install
+echo NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api > .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev` — start Next.js in dev
+- `npm run build && npm start` — production build & serve
+- `npm run lint` — ESLint checks (strict: hooks order, no-img-element, typesafety, etc.)
 
-## Learn More
+### Environment
 
-To learn more about Next.js, take a look at the following resources:
+- `NEXT_PUBLIC_API_BASE_URL` — required, points to Laravel API (e.g. `http://127.0.0.1:8000/api`)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Structure (selected)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `src/app` — routes (App Router)
+  - `/` — storefront home (catalog)
+  - `/products/view` — product detail (client-selected)
+  - `/cart`, `/checkout`, `/orders`, `/profile`
+  - `/admin/products`, `/admin/orders`, `/admin/customers` (+ subroutes)
+- `src/components` — UI components (buttons, dialogs, table, uploader, etc.)
+- `src/lib` — API client, pagination, guards, utils
+- `src/store` — Zustand stores (auth, cart)
+- `src/types` — API data contracts
 
-## Deploy on Vercel
+### UI & Patterns
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Shared destructive/edit actions: `DeleteButton`, `EditButton`
+- Confirmations: `ConfirmDialog`
+- Role guard: `useRouteGuard({ requireAuth, requireRole })`
+- Pagination normalization: `normalizePaginatedResponse`, `summarizePagination`
+- Image handling: Next/Image in previews; server returns absolute URLs
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Notes
+
+- Ensure the backend is running and CORS allows `http://localhost:3000`
+- Admin-only routes are guarded; navbar adapts to role
+- The app is intentionally lint-clean. Please keep new code compliant
